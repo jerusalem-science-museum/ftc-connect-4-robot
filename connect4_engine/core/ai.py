@@ -1,7 +1,9 @@
-from core.board import Board
-from utils.logger import logger
 import subprocess
 from time import sleep
+
+from connect4_engine.core.board import Board
+from connect4_engine.utils.logger import logger
+
 class AIPlayerDummy:
     def __init__(self):
         pass

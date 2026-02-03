@@ -1,0 +1,4 @@
+pymycobot
+numpy
+pyyaml
+pytest

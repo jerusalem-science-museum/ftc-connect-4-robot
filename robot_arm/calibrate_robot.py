@@ -19,7 +19,7 @@ from hardware.arduino import ArduinoCommunicator as Arduino
 class Calibration:
     def __init__(self, robot: MyCobot):
         self.robot = robot
-        self.pump = Arduino(serial.Serial("COM12", 115200))
+        self.pump = Arduino(serial.Serial("COM4", 115200))
         self.calibration_data = {}
         self.toggle_f6 = True
         self.toggle_f5 = True

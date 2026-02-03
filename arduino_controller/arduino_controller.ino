@@ -6,7 +6,7 @@
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("setting up");
+  Serial.println("LOG setting up");
   pinMode(PUCK_ANALOG_PIN, INPUT);
   pinMode(latch_pin, OUTPUT);
   pinMode(load_pin, OUTPUT);
@@ -21,10 +21,11 @@ void setup() {
 
   SPI.begin();
   SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
+  close_solenoids();
+  Serial.println("START");
 
-  writeToSr(solenoid_state);
-  Serial.println("START");  // later on will only turn on when button is pressed.
-  pump_on_off();
+  // Serial.println("START");  // later on will only turn on when button is pressed.
+
 }
 
 void detectAnalogDrop() {
@@ -43,16 +44,12 @@ void detectAnalogDrop() {
     is_light = true;
     prev_value = value;
   }
+
 }
 
 void loop() {
-  // detectAnalogDrop();
   handleDiscDetection();
-  // // handleButtonPress();
-  // // handlePump();
   if (Serial.available()) {
     handle_cmd(Serial.readStringUntil('\n'));
   }
-  // delay(1);
-  // turn_off_solenoids();
 }

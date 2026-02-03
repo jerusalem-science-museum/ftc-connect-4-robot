@@ -2,6 +2,7 @@
 
 #include <SPI.h>
 #include <stdint.h>
+#include <string.h>
 
 const int load_pin = 3;     //165 - read
 const int latch_pin = 4;    //595 - write
@@ -52,14 +53,18 @@ void shutOffPump() {
   digitalWrite(pump_pin, LOW);
   digitalWrite(release_pump_pin, LOW);
   pumpRunning = false;
-  Serial.println("LOG: pump off");
+  Serial.println("LOG: PUMP OFF");
+
 }
 
 void releasePump() {
   digitalWrite(pump_pin, LOW);
+  delay(100);
   digitalWrite(release_pump_pin, HIGH);
+  delay(100);
   pumpRunning = false;
-  Serial.println("LOG: pump release");
+
+  Serial.println("LOG: PUMP RELEASE");
 }
 void pump_on_off()
 {
@@ -71,7 +76,7 @@ void pump_on_off()
   Serial.println("pump release");
   delay(2000);
   shutOffPump();
-  Serial.println("pump off");
+  Serial.println("LOG: PUMP ONOFF");
 }
 
 
@@ -94,28 +99,22 @@ void update165() {
 }
 
 void handleDiscDetection() {
-
-  // unsigned long now = millis();
-  // if(!(now > last_change_ms + DEBOUNCE_MS))
-  //   return;
   static byte last_data = 0;
-
   update165();
   byte data = SPI.transfer(0);
   data = (~data) & 0b01111111;
   //we have a rising edge
   if (data != 0 && last_data == 0) {
-    // last_change_ms = now;
     Serial.println(data);
     Serial.print("DROP ");
     Serial.println(__builtin_ctz(data));
   }
   else if (data == 0 && last_data != 0) {
     Serial.println("LOG light renewed :)");
-    Serial.println("faking picking up a pick then puttine it down");
-    pump_on_off();
+    char msg[40];
+    sprintf(msg,"LOG prev data %d",last_data);
+    Serial.println(msg);
   }
-
   last_data = data;
 }
 
@@ -148,7 +147,7 @@ void handleButtonPress() {
 }
 
 
-void turn_off_solenoids()
+void reset_solenoids()
 {
   for(int i=0;i<7;++i)
   {
@@ -156,20 +155,23 @@ void turn_off_solenoids()
     sprintf(msg,"LOG turn off solenoid %d",i);
     Serial.println(msg);
     writeToSr(1 << i);
-    delay(2000);
+    delay(3000); 
   }
   writeToSr(0);
-      // if (val < 0 || val > 7) break;
+  Serial.println("START"); // for now, restart immediatly. in future - button?
+}
 
-      // if (val == 0) {
-      //   solenoid_state = 0;
-      //   writeToSr(0);
-      // } else {
-      //   writeToSr(1 << (val - 1));
-      //   solenoid_state = 1 << (val - 1);
-      // }
-      // success = 1;
-      // break;
+void open_solenoids()
+{
+  writeToSr(0x7f);
+  Serial.println("LOG: OPEN ALL SOLENOIDS");
+}
+
+
+void close_solenoids()
+{
+  writeToSr(0);
+  Serial.println("LOG: CLOSE ALL SOLENOIDS");
 }
 
 // void ack(byte msg) {
@@ -177,13 +179,19 @@ void turn_off_solenoids()
 // }
 void handle_cmd(String cmd) {
   if(cmd == "RESET")
-    turn_off_solenoids();
+    reset_solenoids();
   else if(cmd == "PUMP ON")
     turnOnPump();
   else if(cmd == "PUMP OFF")
     shutOffPump();
   else if(cmd == "PUMP RELEASE")
     releasePump();
+  else if(cmd == "PUMP ONOFF")
+    pump_on_off();
+  else if (cmd == "OPEN")
+    open_solenoids();
+  else if (cmd == "CLOSE")
+    close_solenoids();
 }
 
 

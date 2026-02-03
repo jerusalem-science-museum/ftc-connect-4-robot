@@ -1,7 +1,8 @@
 from typing import Callable, Optional
-from .arduino import IArduino
-from .robot import IRobot
-from utils.logger import logger
+
+from connect4_engine.hardware.arduino import IArduino
+from connect4_engine.hardware.robot import IRobot
+from connect4_engine.utils.logger import logger
 
 class ArduinoDummy(IArduino):
     def __init__(self):
@@ -38,7 +39,7 @@ class ArduinoDummy(IArduino):
         logger.warning("Arduino resetting solenoids...")
 
 class RobotDummy(IRobot):
-    def __init__(self, arduino: ArduinoDummy):
+    def __init__(self, arduino: ArduinoDummy = None):
         self.arduino = arduino
 
     def drop_piece(self, column: int, puck_no: int):
@@ -51,7 +52,8 @@ class RobotDummy(IRobot):
     move to column {column}
     turn off pump
     return to home position""")
-        self.arduino.puck_dropped_in_col(column)
+        if(self.arduino):
+            self.arduino.puck_dropped_in_col(column)
 
     def give_player_puck(self, puck_no: int):
         """

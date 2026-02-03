@@ -1,18 +1,35 @@
 from abc import ABC, abstractmethod
-# from legacy.ArmInterface import ArmInterface
-from pymycobot import MyCobot280
-from utils.logger import logger
 import time
 import json
+
+from pymycobot import MyCobot280
+
+from connect4_engine.utils.logger import logger
+from connect4_engine.hardware.arduino import ArduinoCommunicator as Arduino
 
 class IRobot(ABC):
 
     @abstractmethod
     def drop_piece(self, column: int, puck_no: int):
+        """
+        Drop a puck in the specified column, given that it's the nth puck.
+        Args:
+            column: int - the column to drop the puck in
+            puck_no: int - the number of the puck to drop (from red stack.)
+        Returns:
+            None
+        """
         pass
     
     @abstractmethod
     def give_player_puck(self, puck_no: int):
+        """
+        Give player a yellow puck from that stack, given that it's the nth pucki.
+        Args:
+            puck_no: int - the number of the puck to drop (from yellow stack.)
+        Returns:
+            None
+        """
         pass
 
     @abstractmethod
@@ -20,76 +37,162 @@ class IRobot(ABC):
         pass
 
 class RobotCommunicator(IRobot):
-    def __init__(self, com_port: str = "COM11"):
-        self.robot = MyCobot280(com_port)
-        self.load_angles()
-        self.pump_pin = 5
-        self.valve_pin = 2
-        self.VACCUM_BUILD_TIME = 0.1 #seconds
-        self.VACCUM_DROP_TIME = 0.2 #seconds
-        self.robot.sync_send_angles(self.angles["home"], 50)
+    def __init__(self, com_port: str = "COM11", pump: Arduino = None):
+        if pump is None:
+            raise ValueError("pump must be provided")
+        self.pump = pump
+        self.mc = MyCobot280(com_port)
+        self.coord_json = json.load(open('connect4_engine/hardware/legacy_coords.json'))
+        self.ARM_SPEED = 100
+        self.ARM_SPEED_PRECISE = 50
+        self.MOVE_TIMEOUT = 1
+        self.DISK_LEVEL = self.coord_json['DISK_LEVEL']
+        # Define angle tables for different positions
+        self.angle_table = self.coord_json["angle_table"]
 
+        # Define chess table for different positions
+        self.chess_table = self.coord_json["chess_table"]
+        
+        # Define drop table for different positions
+        self.drop_table = self.coord_json["drop_table"]
     
-    def load_angles(self):
-        with open('connect4_engine/hardware/robot_angles.json', 'r') as f:
-            self.angles = json.load(f)
+    # Method to send angles with retry logic
+    def send_angles(self, angle, speed):
+        self.mc.sync_send_angles(angle, speed, self.MOVE_TIMEOUT)
+        for tries in range(3):
+            if not self.mc.is_in_position(angle, 0):
+                self.mc.sync_send_angles(angle, speed, self.MOVE_TIMEOUT)
+        
+    # Method to send coords with retry logic
+    def send_coords(self, coords, speed, mode = 0):
+
+        self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
+        for tries in range(3):
+            if not self.mc.is_in_position(coords, 1):
+                self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
+
+    # Method to pass to the prepare position
+    def prepare(self):
+        self.send_angles(self.angle_table["prepare"], self.ARM_SPEED)
+                
+    # Method to return to the initial position
+    def recovery(self):
+        self.send_angles(self.angle_table["recovery"], self.ARM_SPEED)
+
+    # Method to move to the top of the left discs stack
+    def hover_over_stack_red(self):
+        self.send_coords(self.angle_table["stack-hover-L"], self.ARM_SPEED_PRECISE, 1)
+    
+    # Method to move to in front of left discs stack
+    def apro_stack_red(self):
+        self.send_coords(self.angle_table["stack-apro-L"], self.ARM_SPEED,0)
+
+    # Method to move to the top of the right disks stack
+    def hover_over_stack_yellow(self):
+        self.send_coords(self.angle_table["stack-hover-R"], self.ARM_SPEED_PRECISE, 1)
+        
+    # Method to move to in front of right discs stack
+    def apro_stack_yellow(self):
+        self.send_angles(self.angle_table["stack-apro-R-angles"], self.ARM_SPEED)
+        # self.send_coords(self.angle_table["stack-apro-R"], self.ARM_SPEED,0)
+
+    def _pump_on(self):
+        print('pump on')
+        self.pump.turn_on_pump()
+    
+    def _pump_off(self):
+        print('pump off')
+        self.pump.turn_off_pump()
+    
+    def _pump_release(self):
+        print('pump release')
+        self.pump.release_pump()
+    # Method to pick up a disk form stakc level n with thickness t
+    def get_disc_yellow(self, counter: int,thickness: int):
+        self.temp_target_coords = self.angle_table["stack-hover-R"] 
+        self.disc_x_coord=self.DISK_LEVEL+(counter*thickness)
+        self.temp_target_coords[0]=self.disc_x_coord
+        self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
+        self._pump_on()
+        time.sleep(0.5)
+        self._pump_off()
+        self.send_coords(self.angle_table["stack-apro-R"], self.ARM_SPEED,1)  
+        #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)
+	    
+    # Method to pick up a disk form stack level n with thickness t
+    def get_disc_red(self, counter: int,thickness: int):
+        self.temp_target_coords = self.angle_table["stack-hover-L"] 
+        self.disc_x_coord=self.DISK_LEVEL + (counter*thickness)
+        self.temp_target_coords[0]=self.disc_x_coord
+        self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
+        self._pump_on()
+        time.sleep(0.5)
+        self._pump_off()
+        self.send_coords(self.angle_table["stack-apro-L"], self.ARM_SPEED,1)
+        #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)
+                    
+    # Method to move to the handover window and drop the disk
+    def drop_in_window(self):
+       #logger.debug("droping disc in window")
+       self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED)        
+       self.send_coords(self.angle_table["in-window"], self.ARM_SPEED, 1)
+       self._pump_release()
+       time.sleep(0.5)
+       self._pump_off()
+       time.sleep(0.5)
+       self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED,0) 
+
+
+    # Method to move to the top of the chessboard
+    def hover_over_chessboard_n(self, n: int):
+        if n is not None and 0 <= n <= 6:
+            # logger.debug(f"Move to chess position {n}, Coords: {self.chess_table[n]}")
+            self.send_coords(self.chess_table[n], self.ARM_SPEED)
+            self.send_coords(self.drop_table[n], self.ARM_SPEED, 1)
+            self._pump_release()
+            time.sleep(0.5)
+            self.send_coords(self.chess_table[n], self.ARM_SPEED)
+        else:
+            self._pump_release()
+            raise Exception(
+                f"Input error, expected chessboard input point must be between 0 and 6, got {n}"
+            )
+
+    # Method to move to the observation posture
+    def observe_posture(self):
+        print(f"Move to observe position {self.angle_table['observe']}")
+        self.send_angles(self.angle_table["observe"], self.ARM_SPEED)
+        time.sleep(2)
 
     def drop_piece(self, column: int,  puck_no: int):
-        angles = self._get_puck_angle('red', puck_no)
-        logger.debug(f"Picking up red puck number {puck_no} at angles {angles}")
-        self.robot.sync_send_angles(angles, 50)
-        self._pump_on()
-        logger.debug(f"Moving to column {column} drop angles {self.angles[f'column_{column}']}")
-        self.robot.sync_send_angles(self.angles[f"column_{column}"], 50)
-        self._pump_off()
-        self.robot.sync_send_angles(self.angles["home"], 50)
+
+        self.prepare()
+        logger.debug(f"Picking up red puck number {puck_no}")
+        self.apro_stack_red()
+        self.get_disc_red(puck_no,self.coord_json['red_puck_thickness'])
+        logger.debug(f"Moving to column {column}")
+        self.prepare()
+        self.observe_posture()
+        self.hover_over_chessboard_n(column)
+        self.observe_posture()
         logger.debug(f"Returned to home position")
     
     def give_player_puck(self, puck_no: int):
         logger.debug("Giving player a puck")
-        angles = self._get_puck_angle('yellow', puck_no)
-        logger.debug(f"Picking up yellow puck number {puck_no} at angles {angles}")
-        self.robot.sync_send_angles(angles, 50)
-        self._pump_on()
+        self.prepare()
+        logger.debug(f"Picking up yellow puck number {puck_no}")
+        self.apro_stack_yellow()
+        self.get_disc_yellow(puck_no,self.coord_json['yellow_puck_thickness'])
         logger.debug("Puck picked up, moving to player position")
-        self.robot.sync_send_angles(self.angles["player_dropoff"], 50)
+        self.prepare()
+        self.observe_posture()
+        self.drop_in_window()
         logger.debug("At player position, releasing puck")
-        self._pump_off()
-        self.robot.sync_send_angles(self.angles["home"], 50)
+        self.observe_posture()
         logger.debug("Returned to home position")
 
-    def _get_puck_angle(self, color: str, puck_no: int):
-        """
-        given that as we take pucks the height changes, we need to adjust the angle accordingly.
-        Get the angles for picking up a puck of a given color, given that it's the nth puck.
-        """
-        key = f"{color}_puck_width"
-        angles = self.angles[color]
-        angles[5] -= self.angles[key] * puck_no
-        return angles
-    
-        # Method to turn on the pump
-    def _pump_on(self):
-        # close to exust the valve
-        self.robot.set_basic_output(self.valve_pin, 1)
-        logger.debug(f"exhust closed")
-        # start pump
-        self.robot.set_basic_output(self.pump_pin, 0)
-        logger.debug(f"pump on")
-        time.sleep(self.VACCUM_BUILD_TIME)
-
-    # Method to turn off the pump
-    def _pump_off(self):
-        # Close the solenoid valve
-        self.robot.set_basic_output(self.pump_pin, 1)
-        logger.debug(f"pump off")
-        # Start the exhaust valve
-        self.robot.set_basic_output(self.valve_pin, 0)
-        logger.debug(f"exhaust open")
-        time.sleep(self.VACCUM_DROP_TIME)
-
     def reset(self):
-        self.robot.sync_send_angles(self.angles["home"], 50)
+        self.observe_posture()
         logger.debug("Robot reset to home position")
 
 if __name__ == "__main__":

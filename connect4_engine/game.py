@@ -1,9 +1,11 @@
 from typing import Callable
-from core.board import Board
-from core.ai import AIPlayerDummy, AIPascalPons
-from hardware.robot import IRobot
-from hardware.arduino import IArduino
-from utils.logger import logger
+
+from connect4_engine.core.board import Board
+from connect4_engine.core.ai import AIPlayerDummy, AIPascalPons
+from connect4_engine.hardware.robot import IRobot
+from connect4_engine.hardware.arduino import IArduino
+from connect4_engine.utils.logger import logger
+
 class Connect4Game:
 
     PLAYER_COLOR = Board.P_RED

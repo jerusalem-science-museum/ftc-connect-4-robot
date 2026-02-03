@@ -60,3 +60,6 @@ send_angles_angular(robot, angles2, 50)
 
 print("\nDone!")
 
+
+
+

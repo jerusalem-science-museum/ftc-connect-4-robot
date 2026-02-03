@@ -1,8 +1,12 @@
 import time
-from pymycobot import MyCobot280 as MyCobot
 from typing import *
 import logging
 import json
+import serial
+
+from pymycobot import MyCobot280 as MyCobot
+
+from connect4_engine.hardware.arduino import ArduinoCommunicator as Arduino
 # from core.logger import get_logger
 
 # logger = get_logger(__name__)
@@ -10,6 +14,7 @@ import json
 class ArmInterface:
     def __init__(self, port: str, baudrate: int):
         # Define arm speeds
+        self.pump = Arduino(serial.Serial("COM5", 115200))
         self.ARM_SPEED = 100
         self.ARM_SPEED_PRECISE = 50
         self.DISC_LEVEL = 145
@@ -41,12 +46,10 @@ class ArmInterface:
         self.button_pin = 18 #used to get input from the user to start the game
 
         # Define Pump operations constants and M5 controller ("Basic") IO pins
-        self.pump_pin = 5
-        self.valve_pin = 2
         self.VACCUM_BUILD_TIME = 0.1 #seconds
         self.VACCUM_DROP_TIME = 0.2 #seconds
         
-        self.coord_json = json.load(open('robot_arm/legacy_coords.json'))
+        self.coord_json = json.load(open('connect4_engine/hardware/legacy_coords.json'))
         # Define angle tables for different positions
         self.angle_table = self.coord_json["angle_table"]
 
@@ -145,11 +148,15 @@ class ArmInterface:
 
     def pump_on(self):
         print('pump on')
-
+        self.pump.turn_on_pump()
     
     def pump_off(self):
         print('pump off')
-        
+        self.pump.turn_off_pump()
+    
+    def pump_release(self):
+        print('pump release')
+        self.pump.release_pump()
     # Method to pick up a disk form stakc level n with thickness t
     def get_disc_yellow(self, counter: int,thickness: int):
         self.temp_target_coords = self.angle_table["stack-hover-R"] 
@@ -175,8 +182,10 @@ class ArmInterface:
        #logger.debug("droping disc in window")
        self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED)        
        self.send_coords(self.angle_table["in-window"], self.ARM_SPEED, 1)
-       self.pump_off()
-       #time.sleep(0.5)
+       self.pump.release_pump()
+       time.sleep(0.5)
+       self.pump.turn_off_pump()
+       time.sleep(0.5)
        self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED,0) 
 
 
@@ -186,11 +195,11 @@ class ArmInterface:
             # logger.debug(f"Move to chess position {n}, Coords: {self.chess_table[n]}")
             self.send_coords(self.chess_table[n], self.ARM_SPEED)
             self.send_coords(self.drop_table[n], self.ARM_SPEED, 1)
-            self.pump_off()
+            self.pump_release()
             time.sleep(0.5)
             self.send_coords(self.chess_table[n], self.ARM_SPEED)
         else:
-            self.pump_off()
+            self.pump_release()
             raise Exception(
                 f"Input error, expected chessboard input point must be between 0 and 6, got {n}"
             )
@@ -221,7 +230,20 @@ class ArmInterface:
         self.off_current_state_bit(column) # only update the state but NOT change ouptut 
         self.drive_output(self.current_state) # now change outputs 
         time.sleep(self.SOLENOIDE_SPACE_TIME)
-        
+
+    def check_angles(self):
+        self.mc.release_all_servos()
+        input("move robot to desired location and press ENTER")
+        self.mc.power_on()
+        print(self.mc.get_angles())
+
+    def check_coords(self):
+        self.mc.release_all_servos()
+        input("move robot to desired location and press ENTER")
+        self.mc.power_on()
+        print(self.mc.get_coords())
+
+
     # Method to Clear all colums
     def clear_board(self):
         print(f"clearing board")
@@ -233,14 +255,23 @@ class ArmInterface:
     # method to change head color
     def set_color(self, r:int, g:int, b:int):
         self.mc.set_color(r, g, b)
-    
-      
-if __name__ == "__main__":
+
+def test_arm():
     arm = ArmInterface("COM11", 115200)
     arm.mc.power_on()
-    arm.hover_over_stack_left()
+    arm.prepare()
+    input()
     arm.apro_stack_left()
-    arm.hover_over_stack_right()
-    arm.apro_stack_right()
-    arm.hover_over_chessboard_n(0)
+    input()
+    arm.get_disc_red(2, 10)
+    arm.pump_on()
+    input()
+    arm.apro_stack_left()
+    arm.pump_off()
+    arm.prepare()
     arm.observe_posture()
+    input()
+    arm.hover_over_chessboard_n(0)
+    input()
+    arm.prepare()
+    input()
