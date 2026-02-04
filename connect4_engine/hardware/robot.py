@@ -93,7 +93,7 @@ class RobotCommunicator(IRobot):
         
     # Method to move to in front of right discs stack
     def apro_stack_yellow(self):
-        self.send_angles(self.angle_table["stack-apro-R-angles"], self.ARM_SPEED)
+        self.send_coords(self.angle_table["stack-apro-R"], self.ARM_SPEED)
         # self.send_coords(self.angle_table["stack-apro-R"], self.ARM_SPEED,0)
 
     def _pump_on(self):
@@ -114,7 +114,7 @@ class RobotCommunicator(IRobot):
         self.temp_target_coords[0]=self.disc_x_coord
         self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
         self._pump_on()
-        time.sleep(0.5)
+        time.sleep(1)
         self._pump_off()
         self.send_coords(self.angle_table["stack-apro-R"], self.ARM_SPEED,1)  
         #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)
@@ -126,7 +126,7 @@ class RobotCommunicator(IRobot):
         self.temp_target_coords[0]=self.disc_x_coord
         self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
         self._pump_on()
-        time.sleep(0.5)
+        time.sleep(1)
         self._pump_off()
         self.send_coords(self.angle_table["stack-apro-L"], self.ARM_SPEED,1)
         #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)

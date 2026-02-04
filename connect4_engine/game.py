@@ -45,6 +45,7 @@ class Connect4Game:
         self.arduino.reset()
         self.robot.reset()
         self.board.reset()
+        self.turns_taken = {'player': 0, 'ai': 0}
     
     def piece_dropped_in_board(self, column: int):
         """
