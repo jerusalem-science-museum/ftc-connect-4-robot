@@ -176,3 +176,7 @@ class Board:
             return round // 2, round // 2 - 1
         else:
             return round // 2, round // 2
+
+    def get_column_stack(self):
+        str_repr = np.array_str((self.grid != Board.P_EMPTY).sum(axis=0)) # e.g. '[1 2 0 3 1 0 2]'
+        return str_repr[1::2] # take odd parts, i.e. '1203102'

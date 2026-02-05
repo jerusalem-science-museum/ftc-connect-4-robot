@@ -104,7 +104,15 @@ class RobotCommunicator(IRobot):
         print('pump off')
         self.pump.turn_off_pump()
     
-    def _pump_release(self):
+    def pump_release_and_off(self):
+        self._pump_open_release_solenoid()
+        time.sleep(0.2)
+        self._pump_off()
+
+    def _pump_open_release_solenoid(self):
+        """
+        keeps solenoid on to open air suction, remember to turn it off!!!
+        """
         print('pump release')
         self.pump.release_pump()
     # Method to pick up a disk form stakc level n with thickness t
@@ -136,11 +144,8 @@ class RobotCommunicator(IRobot):
        #logger.debug("droping disc in window")
        self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED)        
        self.send_coords(self.angle_table["in-window"], self.ARM_SPEED, 1)
-       self._pump_release()
-       time.sleep(0.5)
-       self._pump_off()
-       time.sleep(0.5)
-       self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED,0) 
+       self.pump_release_and_off()
+       self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED, 0) 
 
 
     # Method to move to the top of the chessboard
@@ -149,11 +154,10 @@ class RobotCommunicator(IRobot):
             # logger.debug(f"Move to chess position {n}, Coords: {self.chess_table[n]}")
             self.send_coords(self.chess_table[n], self.ARM_SPEED)
             self.send_coords(self.drop_table[n], self.ARM_SPEED, 1)
-            self._pump_release()
-            time.sleep(0.5)
+            self.pump_release_and_off()
             self.send_coords(self.chess_table[n], self.ARM_SPEED)
         else:
-            self._pump_release()
+            self.pump_release_and_off()
             raise Exception(
                 f"Input error, expected chessboard input point must be between 0 and 6, got {n}"
             )
@@ -162,7 +166,6 @@ class RobotCommunicator(IRobot):
     def observe_posture(self):
         print(f"Move to observe position {self.angle_table['observe']}")
         self.send_angles(self.angle_table["observe"], self.ARM_SPEED)
-        time.sleep(2)
 
     def drop_piece(self, column: int,  puck_no: int):
 

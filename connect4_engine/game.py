@@ -1,7 +1,7 @@
-from typing import Callable
 
+from asyncio import FIRST_COMPLETED
 from connect4_engine.core.board import Board
-from connect4_engine.core.ai import AIPlayerDummy, AIPascalPons
+from connect4_engine.core.ai import AIPascalPons
 from connect4_engine.hardware.robot import IRobot
 from connect4_engine.hardware.arduino import IArduino
 from connect4_engine.utils.logger import logger
@@ -23,18 +23,19 @@ class Connect4Game:
         self.arduino.set_game_start_callback(self.game_start)
         self.turns_taken = {'player': 0, 'ai': 0}
         self.player_starts = player_starts
-        self.turn = 'ai'
+        self.turn = 'player'
+        self.gave_player_puck = False
+        self.first_game = True # first time we don't need to reset the board.
         # possibly setup robot and arduino if not done elsewhere
 
     def game_start(self):
-        # initial turn
-        self.logger.info("Game started!")
-        if self.player_starts:
-            self.turn = 'player'
+        # initial turn, user always starts.
+        self.logger.info("Game starting...")
+        if self.turns_taken['player'] > 0:
+            self.game_over("resetting dirty game")
+        if not self.gave_player_puck:
             self.robot.give_player_puck(self.turns_taken['player'])
-        else:
-            self.turn = 'ai'
-            self.ai_turn()
+        self.turn = 'player'
 
     def game_over(self, message: str):
         """
@@ -42,7 +43,7 @@ class Connect4Game:
         """
         self.logger.info(message)
         self.board.display()
-        self.arduino.reset()
+        self.arduino.reset(self.board.get_column_stack())
         self.robot.reset()
         self.board.reset()
         self.turns_taken = {'player': 0, 'ai': 0}
@@ -53,6 +54,7 @@ class Connect4Game:
         note we're only updating the board when the ledstrip detects a piece drop,
         not just when we tell the robot to insert it there.
         """
+        self.gave_player_puck = False # no puck in cartridge anymore.
         self.turns_taken[self.turn] += 1
         if self.turn == 'ai':
             self.logger.error("board isn't supposed to see ai moves bc they fall under the ledstrip!")
@@ -90,3 +92,4 @@ class Connect4Game:
             return
         self.turn = 'player'
         self.robot.give_player_puck(self.turns_taken['player'])
+        self.gave_player_puck = True

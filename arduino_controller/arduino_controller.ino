@@ -22,33 +22,14 @@ void setup() {
   SPI.begin();
   SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
   close_solenoids();
-  Serial.println("START");
-
-  // Serial.println("START");  // later on will only turn on when button is pressed.
-
+  delay(1000);
+  Serial.println("LOG set up");
 }
 
-void detectAnalogDrop() {
-  static float prev_value = analogRead(PUCK_ANALOG_PIN);
-  static bool is_light = true;
-  float value = analogRead(PUCK_ANALOG_PIN);
-  if (prev_value - value > 200 && is_light) {
-    Serial.println("puck covered");
-    Serial.println(value);
-    is_light = false;
-    prev_value = value;
-  }
-  else if (value - prev_value > 200 & !is_light) {
-    Serial.println("puck uncovered");
-    Serial.println(value);
-    is_light = true;
-    prev_value = value;
-  }
-
-}
 
 void loop() {
   handleDiscDetection();
+  handleButtonPress();
   if (Serial.available()) {
     handle_cmd(Serial.readStringUntil('\n'));
   }

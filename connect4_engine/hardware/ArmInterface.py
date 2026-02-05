@@ -208,7 +208,6 @@ class ArmInterface:
     def observe_posture(self):
         print(f"Move to observe position {self.angle_table['observe']}")
         self.send_angles(self.angle_table["observe"], self.ARM_SPEED)
-        time.sleep(2)
 
     # Method to move the arm
     def move(self, action: str):
@@ -219,7 +218,6 @@ class ArmInterface:
     def drop_piece(self):
         print(f"Dropping piece at {self.mc.get_angles()}")
         self.mc.move_round()
-        time.sleep(2.5)
 
     # Method to Clear the column n
     def clear_column(self, column:int):

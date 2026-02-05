@@ -1,3 +1,4 @@
+#include "Arduino.h"
 #pragma once 
 
 #include <SPI.h>
@@ -7,8 +8,7 @@
 const int load_pin = 3;     //165 - read
 const int latch_pin = 4;    //595 - write
 const int btn_pin = 5;      //The start button
-
-const int btn_ms_time = 1;  //Time for button to register a press
+const int ms_to_reset = 2000; // no. of ms user needs to press button to reset the game.
 const int pump_pin = 8;
 const int release_pump_pin = 7;
 const int DEBOUNCE_MS = 1000;
@@ -24,7 +24,7 @@ void setup_sensors()
 {
   pinMode(latch_pin, OUTPUT);
   pinMode(load_pin, OUTPUT);
-  pinMode(btn_pin, INPUT);
+  pinMode(btn_pin, INPUT_PULLUP);
   pinMode(pump_pin, OUTPUT);
   pinMode(release_pump_pin, OUTPUT);
   digitalWrite(load_pin, HIGH);
@@ -63,9 +63,9 @@ void releasePump() {
   digitalWrite(release_pump_pin, HIGH);
   delay(100);
   pumpRunning = false;
-
   Serial.println("LOG: PUMP RELEASE");
 }
+
 void pump_on_off()
 {
   
@@ -105,7 +105,6 @@ void handleDiscDetection() {
   data = (~data) & 0b01111111;
   //we have a rising edge
   if (data != 0 && last_data == 0) {
-    Serial.println(data);
     Serial.print("DROP ");
     Serial.println(__builtin_ctz(data));
   }
@@ -128,37 +127,47 @@ int bit_index(byte x) {
   return __builtin_ctz(x);
 }
 
-
+// register reset button after ms_to_reset milliseconds, so user gets response more immediatly than on release.
 void handleButtonPress() {
-  static int prevPressed = LOW;
+  static bool wasPressed = false;
   static unsigned long pressStart = 0;
-
-  int pressed = digitalRead(btn_pin);
-
-  if (pressed != prevPressed) {
-    prevPressed = pressed;
-
-    if (pressed == HIGH) {
-      pressStart = millis();
-    } else if (millis() - pressStart >= btn_ms_time) {
-      Serial.println("START");
-    }
+  static bool sentStart = false;
+  bool pressed = !digitalRead(btn_pin); // pullup defaults to high except on press.
+  if (pressed && !wasPressed) 
+  {
+    wasPressed = true;
+    pressStart = millis();
+  }
+  else if (!pressed)
+  {
+    wasPressed = false;
+    sentStart = false;
+  }
+  else if (wasPressed && !sentStart && (millis() - pressStart) > ms_to_reset)
+  {
+    Serial.println("START");
+    sentStart = true;
   }
 }
 
 
-void reset_solenoids()
+void reset_solenoids(String stackSizes)
 {
+  bool customWait = false;
+  if(stackSizes.length() > 0)
+    customWait = true;
   for(int i=0;i<7;++i)
   {
     char msg[40];
-    sprintf(msg,"LOG turn off solenoid %d",i);
-    Serial.println(msg);
     writeToSr(1 << i);
-    delay(3000); 
+    int pucksToRemove = 6;
+    if(customWait)
+      pucksToRemove = stackSizes.substring(i,i+1).toInt(); // take the current puck stack size and apply to multiplier
+    sprintf(msg,"LOG turn off solenoid %d for %d pucks", i, pucksToRemove);
+    Serial.println(msg);
+    delay(500 * pucksToRemove); 
   }
   writeToSr(0);
-  Serial.println("START"); // for now, restart immediatly. in future - button?
 }
 
 void open_solenoids()
@@ -178,8 +187,8 @@ void close_solenoids()
 //   Serial.write(msg | (0b1 << 7));
 // }
 void handle_cmd(String cmd) {
-  if(cmd == "RESET")
-    reset_solenoids();
+  if(cmd.startsWith("RESET"))
+    reset_solenoids(cmd.substring(6)); // assuming we might get RESET 3025213
   else if(cmd == "PUMP ON")
     turnOnPump();
   else if(cmd == "PUMP OFF")

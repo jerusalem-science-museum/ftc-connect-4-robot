@@ -1,4 +1,5 @@
-from typing import Callable
+from socket import timeout
+from typing import Callable, Optional
 from abc import ABC, abstractmethod
 import serial
 import time
@@ -15,9 +16,9 @@ class IArduino(ABC):
     @abstractmethod
     def set_game_start_callback(self, callback: Callable[[], None]):
         pass
-    
+
     @abstractmethod
-    def reset(self):
+    def reset(self, column_state: Optional[str] = None):
         pass
 
 class ArduinoCommunicator(IArduino):
@@ -46,13 +47,10 @@ class ArduinoCommunicator(IArduino):
 
         if parts[0] == "START":
             self.handle_start()
-
         elif parts[0] == "DROP" and self._accept_moves and len(parts) == 2:
             return self.handle_drop(line, parts)
         elif parts[0] == "LOG":
             self._logger.info(f"Arduino log: {' '.join(parts[1:])}")
-        elif parts[0] == "READY":
-            self.send_message("RESET")
 
     def handle_drop(self, line, parts):
         try:
@@ -68,8 +66,11 @@ class ArduinoCommunicator(IArduino):
         self._accept_moves = True
         self.game_start()
 
-    def reset(self):
-        self.send_message("RESET")
+    def reset(self, column_state: Optional[str] = None):
+        if column_state is not None:
+            self.send_message(f"RESET {column_state}")
+        else:
+            self.send_message("RESET")
         self._accept_moves = False
     
     def turn_on_pump(self):
@@ -139,5 +140,5 @@ class ArduinoCommunicator(IArduino):
         return False
 
 if __name__ == "__main__":
-    arduino = ArduinoCommunicator(ser=serial.Serial('COM3', 115200))
+    arduino = ArduinoCommunicator(ser=serial.Serial('COM3', 115200,tim))
     arduino.read_loop()
