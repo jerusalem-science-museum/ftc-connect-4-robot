@@ -37,12 +37,18 @@ class IRobot(ABC):
         pass
 
 class RobotCommunicator(IRobot):
-    def __init__(self, com_port: str = "COM11", pump: Arduino = None):
+    def __init__(self, com_port: str = "COM11", pump: Arduino = None, coord_json: dict = None, json_path: str = None):
         if pump is None:
             raise ValueError("pump must be provided")
         self.pump = pump
         self.mc = MyCobot280(com_port)
-        self.coord_json = json.load(open('connect4_engine/hardware/legacy_coords.json'))
+        if coord_json is not None:
+            self.coord_json = coord_json
+        elif json_path is not None:
+            with open(json_path, "r") as f:
+                self.coord_json = json.load(f)
+        else:
+            self.coord_json = json.load(open("connect4_engine/hardware/legacy_coords.json"))
         self.ARM_SPEED = 100
         self.ARM_SPEED_PRECISE = 50
         self.MOVE_TIMEOUT = 1
@@ -64,12 +70,29 @@ class RobotCommunicator(IRobot):
                 self.mc.sync_send_angles(angle, speed, self.MOVE_TIMEOUT)
         
     # Method to send coords with retry logic
-    def send_coords(self, coords, speed, mode = 0):
-
+    def send_coords(self, coords, speed, mode=0):
         self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
         for tries in range(3):
             if not self.mc.is_in_position(coords, 1):
                 self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
+
+    def get_current_angles(self):
+        """Return current joint angles (for location edit flow)."""
+        return self.mc.get_angles()
+
+    def get_current_coords(self):
+        """Return current Cartesian coords [x, y, z, rx, ry, rz] (for location edit flow)."""
+        return self.mc.get_coords()
+
+    def release_servos(self):
+        """Release all servos so the arm can be moved by hand."""
+        self.mc.release_all_servos()
+
+    def lock_servos(self):
+        """Re-engage servos at current position (call after release_servos)."""
+        angles = self.get_current_angles()
+        if angles is not None and len(angles) == 6:
+            self.send_angles(angles, self.ARM_SPEED)
 
     # Method to pass to the prepare position
     def prepare(self):

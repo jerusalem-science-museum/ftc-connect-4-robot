@@ -4,6 +4,26 @@ from connect4_engine.hardware.arduino import IArduino
 from connect4_engine.hardware.robot import IRobot
 from connect4_engine.utils.logger import logger
 
+
+class ArduinoPumpNoOp:
+    """
+    No-op Arduino used for robot location testing: pump and reset do nothing,
+    so RobotCommunicator can run movement sequences without real hardware.
+    """
+
+    def turn_on_pump(self):
+        pass
+
+    def turn_off_pump(self):
+        pass
+
+    def release_pump(self):
+        pass
+
+    def reset(self, column_state: Optional[str] = None):
+        pass
+
+
 class ArduinoDummy(IArduino):
     def __init__(self):
         self.on_puck_dropped_callback: Optional[Callable[[int], None]] = None
@@ -23,20 +43,20 @@ class ArduinoDummy(IArduino):
         in this case we just tell it which column to simulate a move for.
         actual implementation would involve serial communication and waiting for input from the Arduino.
         """
-        logger.warning("Arduino listening for player moves...")
+        logger.debug("Arduino listening for player moves...")
         # Simulate a player move for demonstration purposes
         simulated_player_move = column
-        logger.warning(f"Simulated player move detected in column {simulated_player_move}")
+        logger.debug(f"Simulated player move detected in column {simulated_player_move}")
         if self.on_puck_dropped_callback is None:
             # Contract violated: someone forgot to register the callback
             raise RuntimeError("on_puck_dropped callback not set; call set_on_puck_dropped() first")
         self.on_puck_dropped_callback(simulated_player_move)
 
-    def reset(self):
+    def reset(self, column_state=None):
         """
         Simulate resetting the Arduino hardware.
         """
-        logger.warning("Arduino resetting solenoids...")
+        logger.debug("Arduino resetting solenoids...")
 
 class RobotDummy(IRobot):
     def __init__(self, arduino: ArduinoDummy = None):
@@ -45,21 +65,16 @@ class RobotDummy(IRobot):
     def drop_piece(self, column: int, puck_no: int):
         """
         Simulate dropping a piece in the specified column using the robot hardware.
+        (Does not call puck_dropped_in_col — the real robot's drop is not detected by the LED strip.)
         """
-        logger.warning(f"Robot dropping piece in column {column}")
-        logger.warning(f"""    go to robot puck pile
-    turn on pump
-    move to column {column}
-    turn off pump
-    return to home position""")
-        if(self.arduino):
-            self.arduino.puck_dropped_in_col(column)
+        logger.info(f"Robot dropped piece in column {column}")
+        logger.debug("  go to robot puck pile, turn on pump, move to column, turn off pump, return home")
 
     def give_player_puck(self, puck_no: int):
         """
         Simulate giving a puck to the player.
         """
-        logger.warning("""Robot giving puck to player
+        logger.debug("""Robot giving puck to player
     go to player puck pile
     turn on pump
     move to player pickup location
@@ -70,7 +85,7 @@ class RobotDummy(IRobot):
         """
         Simulate resetting the robot hardware.
         """
-        logger.warning("Robot resetting to home position...")
+        logger.debug("Robot resetting to home position...")
 
 
 class RobotDummySerial(IRobot):
@@ -80,8 +95,8 @@ class RobotDummySerial(IRobot):
         """
         Simulate dropping a piece in the specified column using the robot hardware.
         """
-        logger.warning(f"Robot dropping piece in column {column}")
-        logger.warning(f"""    go to robot puck pile
+        logger.info(f"Robot dropping piece in column {column}")
+        logger.debug(f"""    go to robot puck pile
     turn on pump
     move to column {column}
     turn off pump
@@ -92,7 +107,7 @@ class RobotDummySerial(IRobot):
         """
         Simulate giving a puck to the player.
         """
-        logger.warning("""Robot giving puck to player
+        logger.debug("""Robot giving puck to player
     go to player puck pile
     turn on pump
     move to player pickup location
@@ -103,5 +118,5 @@ class RobotDummySerial(IRobot):
         """
         Simulate resetting the robot hardware.
         """
-        logger.warning("Robot resetting to home position...")
+        logger.debug("Robot resetting to home position...")
 

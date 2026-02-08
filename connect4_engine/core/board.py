@@ -10,8 +10,8 @@ class Board:
     P_RED = 1
     P_YELLOW = 2
 
-    # Constants for display
-    value_to_symbol = {P_EMPTY: "O", P_RED: "R", P_YELLOW: "Y"}
+    # Constants for display (empty = dot, no O's)
+    value_to_symbol = {P_EMPTY: ".", P_RED: "R", P_YELLOW: "Y"}
 
     def __init__(self):
         # Initialize board dimensions
@@ -31,14 +31,17 @@ class Board:
 
     def display(self):
         """
-        Display the board in text format
+        Display the board in text format with a surrounding border. Empty cells show as '.' (no O's).
         """
-        lines = []
+        width = self.width
+        top = "+" + " -" * width + " +"
+        bottom = "+ 0 1 2 3 4 5 6 +"
+        lines = [top]
         for row in self.grid[::-1]:
-            line = " ".join(Board.value_to_symbol[cell] for cell in row)
+            line = "| " + " ".join(Board.value_to_symbol[cell] for cell in row) + " |"
             lines.append(line)
-
-        board_str = "\n" + "\n".join(lines) + "\n"  # final extra newline if you want
+        lines.append(bottom)
+        board_str = "\n" + "\n".join(lines) + "\n"
         logger.info(board_str)
 
     def is_draw(self):
@@ -137,10 +140,10 @@ class Board:
         if self.is_col_valid(col):
             row = self.available_cell(col)
             self.grid[row][col] = player
-            self.pons_string += str(col + 1) # assuming turns are always valid
+            self.pons_string += str(col + 1) # assuming turns are always valid. pons_string is 1-indexed.
         else:
             raise Exception(f"Not valid move. Column {col} is full.")
-        self.display()
+        # self.display()
 
     def check_board_state_valid(self):
         count_red = 0

@@ -29,24 +29,27 @@ class Connect4Game:
         # possibly setup robot and arduino if not done elsewhere
 
     def game_start(self):
-        # initial turn, user always starts.
+        # initial turn, user always starts. Reset board and turns for a new game.
         self.logger.info("Game starting...")
         if self.turns_taken['player'] > 0:
             self.game_over("resetting dirty game")
+        self.board.reset()
+        self.turns_taken = {'player': 0, 'ai': 0}
+        self.turn = 'player'
         if not self.gave_player_puck:
             self.robot.give_player_puck(self.turns_taken['player'])
-        self.turn = 'player'
 
     def game_over(self, message: str):
         """
-        Handle game over scenario
+        Handle game over scenario. Does not reset the board so callers can detect
+        winner/draw and show "Play again?"; they should call board.reset() when starting a new game.
         """
         self.logger.info(message)
         self.board.display()
         self.arduino.reset(self.board.get_column_stack())
         self.robot.reset()
-        self.board.reset()
-        self.turns_taken = {'player': 0, 'ai': 0}
+        # Board and turns are not reset here so callers can detect winner/draw and show "Play again?".
+        # They are reset in game_start() when starting a new game.
     
     def piece_dropped_in_board(self, column: int):
         """
@@ -82,12 +85,11 @@ class Connect4Game:
         return False
     
     def ai_turn(self):
-        # AI's turn 
+        # AI's turn
         ai_column = self.ai.choose_move(self.board)
         self.robot.drop_piece(ai_column, self.turns_taken['ai'])
         self.turns_taken['ai'] += 1
         self.board.drop_piece(ai_column, Connect4Game.AI_COLOR) # ledstrip doesn't detect ai piece drop bc it falls under it.
-        self.logger.info(f"AI dropped piece in column {ai_column}")
         if self.check_winner():
             return
         self.turn = 'player'
