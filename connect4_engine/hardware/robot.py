@@ -147,7 +147,7 @@ class RobotCommunicator(IRobot):
         self._pump_on()
         time.sleep(1)
         self._pump_off()
-        self.send_coords(self.angle_table["stack-apro-R"], self.ARM_SPEED,1)  
+        self.send_coords(self.angle_table["stack-hover-R"], self.ARM_SPEED,1)  
         #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)
 	    
     # Method to pick up a disk form stack level n with thickness t
@@ -159,7 +159,7 @@ class RobotCommunicator(IRobot):
         self._pump_on()
         time.sleep(1)
         self._pump_off()
-        self.send_coords(self.angle_table["stack-apro-L"], self.ARM_SPEED,1)
+        self.send_coords(self.angle_table["stack-hover-L"], self.ARM_SPEED,1)
         #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)
                     
     # Method to move to the handover window and drop the disk
@@ -194,7 +194,7 @@ class RobotCommunicator(IRobot):
 
         self.prepare()
         logger.debug(f"Picking up red puck number {puck_no}")
-        self.apro_stack_red()
+        self.hover_over_stack_red()
         self.get_disc_red(puck_no,self.coord_json['red_puck_thickness'])
         logger.debug(f"Moving to column {column}")
         self.prepare()
@@ -207,7 +207,7 @@ class RobotCommunicator(IRobot):
         logger.debug("Giving player a puck")
         self.prepare()
         logger.debug(f"Picking up yellow puck number {puck_no}")
-        self.apro_stack_yellow()
+        self.hover_over_stack_yellow()
         self.get_disc_yellow(puck_no,self.coord_json['yellow_puck_thickness'])
         logger.debug("Puck picked up, moving to player position")
         self.prepare()

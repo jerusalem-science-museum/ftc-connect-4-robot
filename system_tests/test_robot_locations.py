@@ -5,18 +5,18 @@ Run from project root: python -m system_tests.test_robot_locations --port COM11 
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
+from connect4_engine.hardware.mock import ArduinoPumpNoOp
+from connect4_engine.hardware.robot import RobotCommunicator
 
 # Project root (parent of system_tests)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_JSON_PATH = PROJECT_ROOT / "connect4_engine" / "hardware" / "legacy_coords.json"
 
-
-def build_sequence():
-    """Build the safe sequence of steps (name, kind, key, speed, mode)."""
+def get_drop_table_sequence():
     steps = []
-    # kind = "angles" | "coords", key = ("angle_table", "prepare") or ("chess_table", 0), mode None for angles
     steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
     for n in range(7):
@@ -27,12 +27,17 @@ def build_sequence():
     steps.append(("handover-window", "coords", ("angle_table", "handover-window"), 100, 0))
     steps.append(("in-window", "coords", ("angle_table", "in-window"), 100, 1))
     steps.append(("handover-window_back", "coords", ("angle_table", "handover-window"), 100, 0))
+    return steps
+
+def get_puck_sequence():
+    """Build the safe sequence of steps (name, kind, key, speed, mode)."""
+    steps = []
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
-    steps.append(("stack-hover-L", "coords", ("angle_table", "stack-hover-L"), 50, 1))
-    steps.append(("stack-apro-L", "coords", ("angle_table", "stack-apro-L"), 100, 0))
-    steps.append(("stack-hover-R", "coords", ("angle_table", "stack-hover-R"), 50, 1))
-    steps.append(("stack-apro-R", "coords", ("angle_table", "stack-apro-R"), 100, 0))
-    steps.append(("recovery", "angles", ("angle_table", "recovery"), 100, None))
+    steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
+    steps.append(("stack-hover-L", "coords", ("angle_table", "stack-hover-L"), 50, 0))
+    steps.append(("stack-hover-R", "coords", ("angle_table", "stack-hover-R"), 50, 0))
+    steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
+    steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
     return steps
 
 
@@ -61,11 +66,20 @@ def run_step(robot, coord_json, step):
     return name, kind, key
 
 
-def edit_mode_loop(robot, coord_json, step, json_path, step_index, nudge_mm=3):
+def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_index, nudge_mm=3):
     """Keyboard loop: nudge X/Y/Z, release, lock, save, next."""
     name, kind, key = step
     print(f"\n[Edit mode] Step: {name} (index {step_index})")
     print("  1/+X  2/-X  3/+Y  4/-Y  5/+Z  6/-Z  |  r=release  l=lock  v=save  n=next (no save)")
+    
+    # Initialize base coordinate from JSON and offset accumulator
+    if kind == "coords":
+        base = list(get_value(coord_json, key))
+        offset = [0, 0, 0]  # Accumulated offset for X, Y, Z only
+    else:
+        base = None
+        offset = None
+    
     while True:
         try:
             raw = input("> ").strip().lower()
@@ -82,7 +96,11 @@ def edit_mode_loop(robot, coord_json, step, json_path, step_index, nudge_mm=3):
             if kind == "angles":
                 current = robot.get_current_angles()
             else:
-                current = robot.get_current_coords()
+                # For coords, save base + accumulated offset instead of reading from robot
+                target = base.copy()
+                for i in range(3):
+                    target[i] = base[i] + offset[i]
+                current = target
             if current is None:
                 print("Could not read current position.")
                 continue
@@ -103,23 +121,29 @@ def edit_mode_loop(robot, coord_json, step, json_path, step_index, nudge_mm=3):
             if kind != "coords":
                 print("Nudge only for coord steps. Use release/lock for angle steps.")
                 continue
-            current = list(robot.get_current_coords() or [0] * 6)
             idx = int(cmd) - 1
             # 0:+X 1:-X 2:+Y 3:-Y 4:+Z 5:-Z
             if idx == 0:
-                current[0] += nudge_mm
+                offset[0] += nudge_mm
             elif idx == 1:
-                current[0] -= nudge_mm
+                offset[0] -= nudge_mm
             elif idx == 2:
-                current[1] += nudge_mm
+                offset[1] += nudge_mm
             elif idx == 3:
-                current[1] -= nudge_mm
+                offset[1] -= nudge_mm
             elif idx == 4:
-                current[2] += nudge_mm
+                offset[2] += nudge_mm
             else:
-                current[2] -= nudge_mm
-            robot.send_coords(current, 50, 0)
-            print("Nudged.")
+                offset[2] -= nudge_mm
+            
+            # Compute target as base + accumulated offset
+            target = base.copy()
+            for i in range(3):
+                target[i] = base[i] + offset[i]
+            # Keep rx, ry, rz from base unchanged (already copied)
+            
+            robot.send_coords(target, 50, 0)
+            print(f"Nudged. Offset: X={offset[0]:+.1f} Y={offset[1]:+.1f} Z={offset[2]:+.1f} | Target: {target[:3]}")
             continue
         print("Unknown command. Use 1-6, r, l, v, n.")
 
@@ -140,13 +164,14 @@ def main():
     with open(json_path, "r") as f:
         coord_json = json.load(f)
 
-    from connect4_engine.hardware.mock import ArduinoPumpNoOp
-    from connect4_engine.hardware.robot import RobotCommunicator
 
     pump = ArduinoPumpNoOp()
     robot = RobotCommunicator(com_port=args.port, pump=pump, coord_json=coord_json)
-
-    sequence = build_sequence()
+    seq = input("which sequence? \n1. get puck sequence\n2. drop positions\n")
+    if (seq == '1'):
+        sequence = get_puck_sequence()
+    if (seq == '2'):
+        sequence = get_drop_table_sequence()
     print(f"Running {len(sequence)} steps. Port={args.port}, JSON={json_path}")
 
     for i, step in enumerate(sequence):
@@ -154,7 +179,7 @@ def main():
         print(f"\n--- Step {i + 1}/{len(sequence)}: {name} ---")
         run_step(robot, coord_json, step)
         if not args.no_edit:
-            edit_mode_loop(robot, coord_json, (name, kind, key), json_path, i, args.nudge_mm)
+            edit_mode_loop(robot, coord_json, (name, kind, key), json_path, i)
 
     print("\nSequence done.")
 
