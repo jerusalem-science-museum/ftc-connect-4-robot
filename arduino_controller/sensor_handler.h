@@ -4,14 +4,37 @@
 #include <SPI.h>
 #include <stdint.h>
 #include <string.h>
+/*
+*
+*==========Arduino Nano pinout====== 
+ *                            _______
+ *                       TXD-|       |-Vin 
+ *                       RXD-|       |-Gnd  
+ *                       RST-|       |-RST
+ *                       GND-|       |-+5V  
+ *                        D2-|       |-A7  
+ *         la_pin (MISO)  D3-|       |-A6  
+ *         st_pin (MOSI)  D4-|       |-A5   
+ *               btn_pin  D5-|       |-A4  
+ *                        D6-|       |-A3   
+ *      release_pump_pin  D7-|       |-A2  
+ *              pump_pin  D8-|       |-A1   
+ *                        D9-|       |-A0   
+   *                     D10-|       |-Ref
+ *               SER_IN  D11-|       |-3.3V   
+ *              SER_OUT  D12-|       |-D13 CLK (SPI)
+ *                            --USB--        
+ */
 
-const int load_pin = 3;     //165 - read
-const int latch_pin = 4;    //595 - write
-const int btn_pin = 5;      //The start button
+
+#define la_pin 3     //165 - read from photoresistors
+#define st_pin 4    //595 - write for solenoids
+#define btn_pin 5      //The start button 
+#define release_pump_pin 7 //
+#define pump_pin 8
+#define DEBOUNCE_MS 1000
+
 const int ms_to_reset = 2000; // no. of ms user needs to press button to reset the game.
-const int pump_pin = 8;
-const int release_pump_pin = 7;
-const int DEBOUNCE_MS = 1000;
 unsigned long last_change_ms = 0;
 byte solenoid_state = 0;
 
@@ -22,21 +45,21 @@ bool pumpRunning = false;
 
 void setup_sensors()
 {
-  pinMode(latch_pin, OUTPUT);
-  pinMode(load_pin, OUTPUT);
+  pinMode(st_pin, OUTPUT);
+  pinMode(la_pin, OUTPUT);
   pinMode(btn_pin, INPUT_PULLUP);
   pinMode(pump_pin, OUTPUT);
   pinMode(release_pump_pin, OUTPUT);
-  digitalWrite(load_pin, HIGH);
-  digitalWrite(latch_pin, HIGH);
+  digitalWrite(la_pin, HIGH);
+  digitalWrite(st_pin, HIGH);
   digitalWrite(pump_pin, LOW);
   digitalWrite(release_pump_pin, LOW);
 }
 
 void writeToSr(byte data) {
-  digitalWrite(latch_pin, LOW);
+  digitalWrite(st_pin, LOW);
   SPI.transfer(data);             // Send output byte
-  digitalWrite(latch_pin, HIGH);  // Latch output
+  digitalWrite(st_pin, HIGH);  // Latch output
 }
 
 
@@ -92,9 +115,9 @@ void handlePump() {
 }
 void update165() {
   // Latch the inputs into the shift register
-  digitalWrite(load_pin, LOW);
+  digitalWrite(la_pin, LOW);
   delayMicroseconds(5);
-  digitalWrite(load_pin, HIGH);
+  digitalWrite(la_pin, HIGH);
   delayMicroseconds(5);
 }
 
