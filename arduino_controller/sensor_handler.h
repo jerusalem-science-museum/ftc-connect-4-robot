@@ -4,14 +4,37 @@
 #include <SPI.h>
 #include <stdint.h>
 #include <string.h>
+/*
+*
+*==========Arduino Nano pinout====== 
+ *                            _______
+ *                       TXD-|       |-Vin 
+ *                       RXD-|       |-Gnd  
+ *                       RST-|       |-RST
+ *                       GND-|       |-+5V  
+ *                        D2-|       |-A7  
+ *         LA_PIN (MISO)  D3-|       |-A6  
+ *         ST_PIN (MOSI)  D4-|       |-A5   
+ *               BTN_PIN  D5-|       |-A4  
+ *                        D6-|       |-A3   
+ *      SOLENOID_PIN  D7-|       |-A2  
+ *              PUMP_PIN  D8-|       |-A1   
+ *                        D9-|       |-A0   
+   *                     D10-|       |-Ref
+ *               SER_IN  D11-|       |-3.3V   
+ *              SER_OUT  D12-|       |-D13 CLK (SPI)
+ *                            --USB--        
+ */
 
-const int load_pin = 3;     //165 - read
-const int latch_pin = 4;    //595 - write
-const int btn_pin = 5;      //The start button
+
+#define LA_PIN 3     //165 - read from photoresistors
+#define ST_PIN 4    //595 - write for solenoids
+#define BTN_PIN 5      //The start button 
+#define SOLENOID_PIN 7 // release pump w solenoid
+#define PUMP_PIN 8
+#define DEBOUNCE_MS 1000
+
 const int ms_to_reset = 2000; // no. of ms user needs to press button to reset the game.
-const int pump_pin = 8;
-const int release_pump_pin = 7;
-const int DEBOUNCE_MS = 1000;
 unsigned long last_change_ms = 0;
 byte solenoid_state = 0;
 
@@ -22,27 +45,27 @@ bool pumpRunning = false;
 
 void setup_sensors()
 {
-  pinMode(latch_pin, OUTPUT);
-  pinMode(load_pin, OUTPUT);
-  pinMode(btn_pin, INPUT_PULLUP);
-  pinMode(pump_pin, OUTPUT);
-  pinMode(release_pump_pin, OUTPUT);
-  digitalWrite(load_pin, HIGH);
-  digitalWrite(latch_pin, HIGH);
-  digitalWrite(pump_pin, LOW);
-  digitalWrite(release_pump_pin, LOW);
+  pinMode(ST_PIN, OUTPUT);
+  pinMode(LA_PIN, OUTPUT);
+  pinMode(BTN_PIN, INPUT_PULLUP);
+  pinMode(PUMP_PIN, OUTPUT);
+  pinMode(SOLENOID_PIN, OUTPUT);
+  digitalWrite(LA_PIN, HIGH);
+  digitalWrite(ST_PIN, HIGH);
+  digitalWrite(PUMP_PIN, LOW);
+  digitalWrite(SOLENOID_PIN, LOW);
 }
 
 void writeToSr(byte data) {
-  digitalWrite(latch_pin, LOW);
+  digitalWrite(ST_PIN, LOW);
   SPI.transfer(data);             // Send output byte
-  digitalWrite(latch_pin, HIGH);  // Latch output
+  digitalWrite(ST_PIN, HIGH);  // Latch output
 }
 
 
 void turnOnPump() {
-  digitalWrite(pump_pin, HIGH);
-  digitalWrite(release_pump_pin, LOW);
+  digitalWrite(PUMP_PIN, HIGH);
+  digitalWrite(SOLENOID_PIN, LOW);
   Serial.println("LOG: PUMP ON");
   pumpStartTime = millis();
   pumpRunning = true;
@@ -50,17 +73,17 @@ void turnOnPump() {
 
 void shutOffPump() {
 
-  digitalWrite(pump_pin, LOW);
-  digitalWrite(release_pump_pin, LOW);
+  digitalWrite(PUMP_PIN, LOW);
+  digitalWrite(SOLENOID_PIN, LOW);
   pumpRunning = false;
   Serial.println("LOG: PUMP OFF");
 
 }
 
 void releasePump() {
-  digitalWrite(pump_pin, LOW);
+  digitalWrite(PUMP_PIN, LOW);
   delay(100);
-  digitalWrite(release_pump_pin, HIGH);
+  digitalWrite(SOLENOID_PIN, HIGH);
   delay(100);
   pumpRunning = false;
   Serial.println("LOG: PUMP RELEASE");
@@ -92,9 +115,9 @@ void handlePump() {
 }
 void update165() {
   // Latch the inputs into the shift register
-  digitalWrite(load_pin, LOW);
+  digitalWrite(LA_PIN, LOW);
   delayMicroseconds(5);
-  digitalWrite(load_pin, HIGH);
+  digitalWrite(LA_PIN, HIGH);
   delayMicroseconds(5);
 }
 
@@ -132,7 +155,7 @@ void handleButtonPress() {
   static bool wasPressed = false;
   static unsigned long pressStart = 0;
   static bool sentStart = false;
-  bool pressed = !digitalRead(btn_pin); // pullup defaults to high except on press.
+  bool pressed = !digitalRead(BTN_PIN); // pullup defaults to high except on press.
   if (pressed && !wasPressed) 
   {
     wasPressed = true;
