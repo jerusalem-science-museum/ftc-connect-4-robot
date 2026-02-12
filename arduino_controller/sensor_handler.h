@@ -17,7 +17,7 @@
  *         ST_PIN (MOSI)  D4-|       |-A5   
  *               BTN_PIN  D5-|       |-A4  
  *                        D6-|       |-A3   
- *      SOLENOID_PIN  D7-|       |-A2  
+ *          SOLENOID_PIN  D7-|       |-A2  
  *              PUMP_PIN  D8-|       |-A1   
  *                        D9-|       |-A0   
    *                     D10-|       |-Ref
@@ -32,8 +32,9 @@
 #define BTN_PIN 5      //The start button 
 #define SOLENOID_PIN 7 // release pump w solenoid
 #define PUMP_PIN 8
-#define DEBOUNCE_MS 1000
 
+
+const int DEBOUNCE_MS = 1000;
 const int ms_to_reset = 2000; // no. of ms user needs to press button to reset the game.
 unsigned long last_change_ms = 0;
 byte solenoid_state = 0;
