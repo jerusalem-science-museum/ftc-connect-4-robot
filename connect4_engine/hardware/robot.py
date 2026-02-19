@@ -104,7 +104,7 @@ class RobotCommunicator(IRobot):
 
     # Method to move to the top of the left discs stack
     def hover_over_stack_red(self):
-        self.send_coords(self.angle_table["stack-hover-L"], self.ARM_SPEED_PRECISE, 1)
+        self.send_coords(self.angle_table["stack-hover-L"], self.ARM_SPEED_PRECISE, 0)
     
     # Method to move to in front of left discs stack
     def apro_stack_red(self):
@@ -112,7 +112,7 @@ class RobotCommunicator(IRobot):
 
     # Method to move to the top of the right disks stack
     def hover_over_stack_yellow(self):
-        self.send_coords(self.angle_table["stack-hover-R"], self.ARM_SPEED_PRECISE, 1)
+        self.send_coords(self.angle_table["stack-hover-R"], self.ARM_SPEED_PRECISE, 0)
         
     # Method to move to in front of right discs stack
     def apro_stack_yellow(self):
