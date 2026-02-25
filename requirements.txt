@@ -1,4 +1,4 @@
-pymycobot
-numpy
+pymycobot~=4.0.3
+numpy~=2.4.0
 pyyaml
 pytest
