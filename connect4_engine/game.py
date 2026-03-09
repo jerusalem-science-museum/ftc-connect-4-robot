@@ -2,17 +2,17 @@
 from asyncio import FIRST_COMPLETED
 from connect4_engine.core.board import Board
 from connect4_engine.core.ai import AIPascalPons
-from connect4_engine.hardware.robot import IRobot
-from connect4_engine.hardware.arduino import IArduino
+from connect4_engine.hardware.robot import RobotCommunicator
+from connect4_engine.hardware.arduino import ArduinoCommunicator
 from connect4_engine.utils.logger import logger
-
+import threading
 class Connect4Game:
 
     PLAYER_COLOR = Board.P_RED
     AI_COLOR = Board.P_YELLOW
     def __init__(self,
-                 arduino: IArduino,
-                 robot: IRobot,
+                 arduino: ArduinoCommunicator,
+                 robot: RobotCommunicator,
                  player_starts: bool = False):
         self.board = Board()
         self.ai = AIPascalPons(ai_executable_path="connect4_engine/core/c4solver.exe")
@@ -21,12 +21,16 @@ class Connect4Game:
         self.arduino = arduino
         self.arduino.set_on_puck_dropped_callback(self.piece_dropped_in_board)
         self.arduino.set_game_start_callback(self.game_start)
+        self.arduino.set_interrupt_callback(self.interrupt)
         self.turns_taken = {'player': 0, 'ai': 0}
         self.player_starts = player_starts
         self.turn = 'player'
         self.gave_player_puck = False
         self.first_game = True # first time we don't need to reset the board.
         # possibly setup robot and arduino if not done elsewhere
+
+    def interrupt(self):
+        self.robot.killswitch.set()
 
     def game_start(self):
         # initial turn, user always starts. Reset board and turns for a new game.

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import threading
 import time
 import json
 
@@ -36,6 +37,7 @@ class IRobot(ABC):
     def reset(self):
         pass
 
+
 class RobotCommunicator(IRobot):
     def __init__(self, com_port: str = "COM11", pump: Arduino = None, coord_json: dict = None, json_path: str = None):
         if pump is None:
@@ -53,6 +55,7 @@ class RobotCommunicator(IRobot):
         self.ARM_SPEED_PRECISE = 50
         self.MOVE_TIMEOUT = 1
         self.DISK_LEVEL = self.coord_json['DISK_LEVEL']
+        self.killswitch = threading.Event()
         # Define angle tables for different positions
         self.angle_table = self.coord_json["angle_table"]
 
@@ -64,15 +67,29 @@ class RobotCommunicator(IRobot):
     
     # Method to send angles with retry logic
     def send_angles(self, angle, speed):
+        self.check_exit()
         self.mc.sync_send_angles(angle, speed, self.MOVE_TIMEOUT)
         for tries in range(3):
+            self.check_exit()
             if not self.mc.is_in_position(angle, 0):
                 self.mc.sync_send_angles(angle, speed, self.MOVE_TIMEOUT)
         
-    # Method to send coords with retry logic
-    def send_coords(self, coords, speed, mode=0):
+    # check if you should ky
+    def check_exit(self):
+        if(self.killswitch.is_set()):
+            logger.error("thread requested exit, going back to observe and exit.")
+            # TODO: return puck to place if i'm still holding something.
+            self.mc.sync_send_coords(self.angle_table["observe"], self.ARM_SPEED)
+            self.killswitch.clear()
+            logger.error("exit robot thread")
+            raise SystemExit
+        
+    # Method to send coords with retry logic    
+    def send_coords(self, coords, speed, mode = 0):
+        self.check_exit()
         self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
         for tries in range(3):
+            self.check_exit()
             if not self.mc.is_in_position(coords, 1):
                 self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
 
