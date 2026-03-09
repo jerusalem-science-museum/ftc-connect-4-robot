@@ -1,0 +1,118 @@
+{
+  "uuid": "8a603c3fb65ac992fc84cd6752cec0ef",
+  "path": "Offline/connect%204",
+  "name": "connect 4",
+  "content": "",
+  "created_at": "2026-02-18 11:00:12",
+  "updated_at": "2026-02-23 15:25:04",
+  "stick": "",
+  "documents": [
+    {
+      "uuid": "a5f435e43673a8832f9c60c2c5558a92",
+      "title": "Sheet_1",
+      "description": "",
+      "docType": "1",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "5a9ec2085ad6436d86701332d4451b76": 2,
+        "fee3186e847b42ecb0244c6d4d6aaef8": 1,
+        "ef7ea54d367cdb60f78d056756b992d9": 1,
+        "56b239b0ed3d371e23923578aee91726": 1,
+        "9bc5d46e2bd4176ac7c3958f1aa86225": 1,
+        "506a2f49fd5af7690094a86e81a44ebe": 1
+      },
+      "BOM": [
+        [
+          "Value",
+          "Quantity",
+          "Package",
+          "Components",
+          "CustomPara"
+        ],
+        [
+          "KF2510-6A",
+          1,
+          "CONN-TH_KF2510-6A",
+          "COLUMN_SOLENOID",
+          {
+            "Manufacturer Part": "KF2510-6A针座",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C27545"
+          }
+        ],
+        [
+          "BUTTON",
+          1,
+          "CONN-TH_KF2510-2A",
+          "D3",
+          {
+            "Manufacturer Part": "KF2510-2A",
+            "Manufacturer": "BOOMELE",
+            "Supplier": "LCSC",
+            "Supplier Part": "C27543"
+          }
+        ],
+        [
+          "HDR-F-2.54_1x15",
+          2,
+          "HDR-F-2.54_1X15",
+          "H4,H5",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "LCSC",
+            "Supplier Part": "C124408"
+          }
+        ],
+        [
+          "Arduino_Nano_Header",
+          1,
+          "DIP-30_L43.18-W15.24-ARDUINONANO",
+          "J2",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "2510-5AGW High bend",
+          1,
+          "CONN-TH_KF2510-5AGW",
+          "PHOTORESISTORS",
+          {
+            "Manufacturer Part": "2510-5A高弯",
+            "Manufacturer": "BOOMELE(博穆精密)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C61410"
+          }
+        ],
+        [
+          "FK2510",
+          1,
+          "CONN-TH_3P-P2.00_KF2510_3A",
+          "PUMP_CONTROLLER",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ]
+      ],
+      "updateTime": 1771853104,
+      "createTime": 1771405212,
+      "histories": [],
+      "created_at": "2026-02-18 11:00:12",
+      "updated_at": "2026-02-23 15:25:04"
+    }
+  ],
+  "sort": [],
+  "title": "connect 4",
+  "foldername": "connect 4",
+  "schfilename": "connect 4.json",
+  "schfilemtime": 1771853104908
+}

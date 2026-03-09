@@ -12,13 +12,13 @@
  *                       RXD-|       |-Gnd  
  *                       RST-|       |-RST
  *                       GND-|       |-+5V  
- *                        D2-|       |-A7  
- *         LA_PIN (MISO)  D3-|       |-A6  
- *         ST_PIN (MOSI)  D4-|       |-A5   
- *               BTN_PIN  D5-|       |-A4  
+ *              PUMP_PIN  D2-|       |-A7  
+ *               BTN_PIN  D3-|       |-A6  
+ *          SOLENOID_PIN  D4-|       |-A5   
+ *                        D5-|       |-A4  
  *                        D6-|       |-A3   
- *          SOLENOID_PIN  D7-|       |-A2  
- *              PUMP_PIN  D8-|       |-A1   
+ *         LA_PIN (MISO)  D7-|       |-A2  
+ *          ST_PIN (MOSI) D8-|       |-A1   
  *                        D9-|       |-A0   
    *                     D10-|       |-Ref
  *               SER_IN  D11-|       |-3.3V   
@@ -26,12 +26,11 @@
  *                            --USB--        
  */
 
-
-#define LA_PIN 3     //165 - read from photoresistors
-#define ST_PIN 4    //595 - write for solenoids
-#define BTN_PIN 5      //The start button 
-#define SOLENOID_PIN 7 // release pump w solenoid
-#define PUMP_PIN 8
+#define PUMP_PIN 2
+#define BTN_PIN 3      //The start button 
+#define SOLENOID_PIN 4 // release pump w solenoid
+#define LA_PIN 7     //165 - read from photoresistors
+#define ST_PIN 8    //595 - write for solenoids
 
 
 const int DEBOUNCE_MS = 1000;
@@ -226,6 +225,3 @@ void handle_cmd(String cmd) {
   else if (cmd == "CLOSE")
     close_solenoids();
 }
-
-
-
