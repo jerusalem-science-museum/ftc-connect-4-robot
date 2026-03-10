@@ -32,15 +32,17 @@ sudo apt-get install socat # for testing arduino commands without having a butto
 
 # create virtual serial pair
 # sudo socat -d -d PTY,link=/dev/ttyUSB0,raw,echo=0 PTY,link=/dev/ttyVIRTUAL0,raw,echo=0
+# then use 
 
-# put this in your bashrc for vi-lite commands.
 
-# fun bashrc stuff.
+## fun bashrc stuff.
 # alias ll='ls -la'
-# Auto-attach to tmux
+## Auto-attach to tmux
 # if command -v tmux &>/dev/null && [ -z "$TMUX" ]; then
 #   tmux attach 2>/dev/null || tmux new-session
 # fi
 # PS1='\[\e[36m\]\W\[\e[0m\] \$ '
 # set -o vi
 # bind 'set show-mode-in-prompt on'
+# alias ac='~/bin/arduino-cli'
+# alias arduino-cli='~/bin/arduino-cli'

@@ -22,6 +22,7 @@ import os
 import pty
 import select
 import sys
+import time
 import termios
 import tty
 import serial
@@ -84,7 +85,13 @@ def run(port: str, baud: int):
 
                 elif fd == master_fd:
                     # Python app → Arduino
-                    data = os.read(master_fd, 4096)
+                    try:
+                        data = os.read(master_fd, 4096)
+                    except OSError:
+                        # Slave side not connected yet, back off
+                        print("connect app plz")
+                        time.sleep(0.5)
+                        continue
                     if data:
                         ser.write(data)
                         log("py→ard", data)
