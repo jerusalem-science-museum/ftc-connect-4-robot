@@ -95,7 +95,9 @@ fi
 echo ""
 echo "[3/4] Setting up Python virtual environment..."
 
-python3 -m venv "$VENV_DIR"
+if [ ! -d "$VENV_DIR" ]; then
+    python3 -m venv "$VENV_DIR"
+fi
 "$VENV_DIR/bin/pip" install --upgrade pip
 
 if [ -f "$REPO_DIR/requirements.txt" ]; then

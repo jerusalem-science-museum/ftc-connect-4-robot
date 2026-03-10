@@ -8,7 +8,7 @@ from connect4_engine.hardware.mock import RobotDummy
 
 class Main:
     def __init__(self):
-        self.arduino = ArduinoCommunicator(ser=serial.Serial("COM9", 115200))
+        self.arduino = ArduinoCommunicator(ser=serial.Serial("/dev/ttyUSB0", 115200))
         # self.robot = RobotCommunicator(com_port="COM11", pump=self.arduino)
         self.robot = RobotDummy()
         self.game = Connect4Game(arduino=self.arduino, robot=self.robot, player_starts=False)
