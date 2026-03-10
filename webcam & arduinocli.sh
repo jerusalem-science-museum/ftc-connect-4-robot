@@ -36,7 +36,7 @@ sudo apt-get install socat # for testing arduino commands without having a butto
 # put this in your bashrc for vi-lite commands.
 
 # fun bashrc stuff.
-
+# alias ll='ls -la'
 # Auto-attach to tmux
 # if command -v tmux &>/dev/null && [ -z "$TMUX" ]; then
 #   tmux attach 2>/dev/null || tmux new-session

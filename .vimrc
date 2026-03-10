@@ -66,14 +66,3 @@ nnoremap <C-h> <C-w>h
 nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
 nnoremap <C-l> <C-w>l
-
-function! OSC52Copy()
-  let text = @"
-  let b64 = system('base64 -w0', text)
-  let b64 = substitute(b64, '\n', '', 'g')
-  let seq = "\e]52;c;" . b64 . "\a"
-  silent! call writefile([seq], '/dev/tty', 'b')
-endfunction
-
-vnoremap <leader>y y:call OSC52Copy()<CR>
-
