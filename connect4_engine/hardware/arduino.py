@@ -27,6 +27,7 @@ class ArduinoCommunicator(IArduino):
         self._ser = ser
         self._logger = logger
         self._accept_moves = False  # only accept drops when game is active
+        self._active_thread = None
 
     def set_interrupt_callback(self, callback: Callable):
         self.interrupt_callback = callback

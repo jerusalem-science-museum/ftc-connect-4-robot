@@ -6,6 +6,7 @@ from connect4_engine.hardware.robot import RobotCommunicator
 from connect4_engine.hardware.arduino import ArduinoCommunicator
 from connect4_engine.utils.logger import logger
 import threading
+import sys
 class Connect4Game:
 
     PLAYER_COLOR = Board.P_RED
@@ -15,7 +16,8 @@ class Connect4Game:
                  robot: RobotCommunicator,
                  player_starts: bool = False):
         self.board = Board()
-        self.ai = AIPascalPons(ai_executable_path="connect4_engine/core/c4solver.exe")
+        solver = "connect4_engine/core/c4solver" + ("" if sys.platform == "linux" else ".exe")
+        self.ai = AIPascalPons(ai_executable_path=solver)
         self.robot = robot
         self.logger = logger
         self.arduino = arduino
