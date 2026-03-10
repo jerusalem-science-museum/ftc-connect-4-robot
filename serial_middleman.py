@@ -134,7 +134,7 @@ def run(port: str, baud: int):
 
 def main():
     parser = argparse.ArgumentParser(description="Serial middleman proxy")
-    parser.add_argument("port", help="Serial port, e.g. /dev/ttyUSB0")
+    parser.add_argument("port", default="/dev/ttyUSB0", help="Serial port, e.g. /dev/ttyUSB0")
     parser.add_argument("--baud", type=int, default=115200, help="Baud rate (default: 9600)")
     args = parser.parse_args()
     run(args.port, args.baud)
