@@ -57,6 +57,7 @@ def run(port: str, baud: int):
 
     # Create PTY for the Python app
     master_fd, slave_path = create_pty()
+    input("now connect to app")
     print(f"Python app should connect to: \033[1;36m{slave_path}\033[0m")
     print()
     print("Commands:  >msg  → send to Arduino")
