@@ -90,7 +90,7 @@ def run(port: str, baud: int):
                         data = os.read(master_fd, 4096)
                     except OSError:
                         # Slave side not connected yet, back off
-                        print("connect app plz")
+                        input("connect app plz")
                         time.sleep(0.5)
                         continue
                     if data:
