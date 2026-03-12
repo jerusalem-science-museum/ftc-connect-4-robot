@@ -54,7 +54,7 @@ class RobotCommunicator(IRobot):
         self.ARM_SPEED = 100
         self.ARM_SPEED_PRECISE = 50
         self.MOVE_TIMEOUT = 1
-        self.DISK_LEVEL = self.coord_json['DISK_LEVEL']
+        self.DISK_LEVEL = self.coord_json['DISK_DELTA_FROM_HOVER']
         self.killswitch = threading.Event()
         # Define angle tables for different positions
         self.angle_table = self.coord_json["angle_table"]
