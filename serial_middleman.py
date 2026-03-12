@@ -65,7 +65,7 @@ def run(port: str, baud: int):
     print("           msg   → send to Arduino (default)")
     print("           quit  → exit")
     print()
-
+    master_is_connected = False
     # Make stdin non-blocking-friendly
     stdin_fd = sys.stdin.fileno()
 
@@ -75,7 +75,7 @@ def run(port: str, baud: int):
             readable, _, _ = select.select(
                 [ser.fileno(), master_fd, stdin_fd], [], [], 0.1
             )
-
+            
             for fd in readable:
                 if fd == ser.fileno():
                     # Arduino → Python app
@@ -84,14 +84,14 @@ def run(port: str, baud: int):
                         os.write(master_fd, data)
                         log("ard→py", data)
 
-                elif fd == master_fd:
+                elif master_is_connected and fd == master_fd:
                     # Python app → Arduino
                     try:
                         data = os.read(master_fd, 4096)
                     except OSError:
                         # Slave side not connected yet, back off
-                        input("connect app plz")
-                        time.sleep(0.5)
+                        input("connect app and type ! to retry connection.")
+                        master_is_connected = False
                         continue
                     if data:
                         ser.write(data)
@@ -107,7 +107,8 @@ def run(port: str, baud: int):
                     if line.lower() in ("quit", "exit"):
                         print("Shutting down.")
                         return
-
+                    if line == "!":
+                        master_is_connected = True
                     if line.startswith("<"):
                         # Send to Python app
                         msg = line[1:].encode("utf-8") + b"\n"
