@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import threading
 import time
 import json
+from utils.config import get_config
 
 from pymycobot import MyCobot280
 
@@ -56,6 +57,8 @@ class RobotCommunicator(IRobot):
         self.MOVE_TIMEOUT = 1
         self.DISK_LEVEL = self.coord_json['DISK_DELTA_FROM_HOVER']
         self.killswitch = threading.Event()
+        robo_config = get_config()["hardware"]["robot"]
+        self.pause_between_moves = robo_config['pause_between_moves']
         # Define angle tables for different positions
         self.angle_table = self.coord_json["angle_table"]
 
@@ -73,7 +76,9 @@ class RobotCommunicator(IRobot):
             self.check_exit()
             if not self.mc.is_in_position(angle, 0):
                 self.mc.sync_send_angles(angle, speed, self.MOVE_TIMEOUT)
-        
+        if(self.pause_between_moves):
+            input('press <Enter> to proceed.')
+            
     # check if you should ky
     def check_exit(self):
         if(self.killswitch.is_set()):
@@ -92,6 +97,8 @@ class RobotCommunicator(IRobot):
             self.check_exit()
             if not self.mc.is_in_position(coords, 1):
                 self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
+        if(self.pause_between_moves):
+            input('press <Enter> to proceed.')
 
     def get_current_angles(self):
         """Return current joint angles (for location edit flow)."""

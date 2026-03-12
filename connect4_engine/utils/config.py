@@ -6,6 +6,11 @@ import serial.tools.list_ports
 
 from connect4_engine.utils.logger import logger
 
+def get_config():
+    with Path("config.yaml").open("r", encoding="utf-8") as _f:
+        _config = yaml.safe_load(_f)
+    return _config
+
 def resolve_port(label: str) -> str | None:
     """Pick the right port for the current OS. If it's a list, probe until one exists."""
     _config = None
