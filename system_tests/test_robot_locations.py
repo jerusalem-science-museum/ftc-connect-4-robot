@@ -74,8 +74,8 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
     """Keyboard loop: nudge X/Y/Z, release, lock, save, next."""
     name, kind, key = step
     print(f"\n[Edit mode] Step: {name} (index {step_index})")
-    print("  1/+X  2/-X  3/+Y  4/-Y  5/+Z  6/-Z  |  r=release  l=lock  v=save  n=next (no save)")
-    
+    print("  1/u/+X  2/d/-X  3/r/+Y  4/l/-Y  5/i/+Z  6/o/-Z  |  x/y/z[+-]<mm>  |  R=release  L=lock  v=save  n=next (no save)")
+
     # Initialize base coordinate from JSON and offset accumulator
     if kind == "coords":
         base = list(get_value(coord_json, key))
@@ -83,20 +83,23 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
     else:
         base = None
         offset = None
+
+    # Track last direction per axis for repeat nudge
+    last_sign = {0: 1, 1: 1, 2: 1}  # x, y, z
     
     while True:
         try:
-            raw = input("> ").strip().lower()
+            raw = input("> ").strip()
         except (EOFError, KeyboardInterrupt):
             print("Abort.")
             sys.exit(0)
         if not raw:
             continue
         cmd = raw[0]
-        if cmd == "n":
+        if cmd.lower() == "n":
             print("Next step (no save).")
             return
-        if cmd == "v":
+        if cmd.lower() == "v":
             if kind == "angles":
                 current = robot.get_current_angles()
             else:
@@ -113,43 +116,59 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
                 json.dump(coord_json, f, indent=2)
             print(f"Saved to {json_path}")
             return
-        if cmd == "r":
+        if cmd == "R":
             robot.release_servos()
-            print("Servos released. Move arm by hand, then press 'l' to lock.")
+            print("Servos released. Move arm by hand, then press 'L' to lock.")
             continue
-        if cmd == "l":
+        if cmd == "L":
             robot.lock_servos()
             print("Servos locked.")
             continue
-        if cmd in "123456":
+        # Map spatial keys: u/d=X+/-, r/l=Y+/-, i/o=Z+/-
+        spatial_map = {"u": "1", "d": "2", "r": "3", "l": "4", "i": "5", "o": "6"}
+        cmd_lower = cmd.lower()
+        if cmd_lower in spatial_map:
+            cmd = spatial_map[cmd_lower]
+        # Parse axis nudge: x/y/z[+-][mm] or [lrudio][mm]
+        axis_match = re.match(r'^([xyz])([+-]?)(\d*\.?\d*)$', raw, re.IGNORECASE)
+        spatial_nudge = re.match(r'^([lrudio])(\d*\.?\d*)$', raw.lower())
+        if axis_match or spatial_nudge or cmd in "123456":
             if kind != "coords":
                 print("Nudge only for coord steps. Use release/lock for angle steps.")
                 continue
-            idx = int(cmd) - 1
-            # 0:+X 1:-X 2:+Y 3:-Y 4:+Z 5:-Z
-            if idx == 0:
-                offset[0] += nudge_mm
-            elif idx == 1:
-                offset[0] -= nudge_mm
-            elif idx == 2:
-                offset[1] += nudge_mm
-            elif idx == 3:
-                offset[1] -= nudge_mm
-            elif idx == 4:
-                offset[2] += nudge_mm
+
+            if axis_match:
+                axis_char, sign_char, amount_str = axis_match.groups()
+                axis_idx = {"x": 0, "y": 1, "z": 2}[axis_char.lower()]
+                if sign_char:
+                    last_sign[axis_idx] = 1 if sign_char == "+" else -1
+                amount = float(amount_str) if amount_str else nudge_mm
+                offset[axis_idx] += last_sign[axis_idx] * amount
+            elif spatial_nudge:
+                key_char, amount_str = spatial_nudge.groups()
+                # l=-Y r=+Y u=+X d=-X i=+Z o=-Z
+                spatial_axis = {"u": (0, 1), "d": (0, -1), "r": (1, 1), "l": (1, -1), "i": (2, 1), "o": (2, -1)}
+                axis_idx, sign = spatial_axis[key_char]
+                last_sign[axis_idx] = sign
+                amount = float(amount_str) if amount_str else nudge_mm
+                offset[axis_idx] += sign * amount
             else:
-                offset[2] -= nudge_mm
-            
+                idx = int(cmd) - 1
+                # 0:+X 1:-X 2:+Y 3:-Y 4:+Z 5:-Z
+                axis_idx = idx // 2
+                sign = 1 if idx % 2 == 0 else -1
+                last_sign[axis_idx] = sign
+                offset[axis_idx] += sign * nudge_mm
+
             # Compute target as base + accumulated offset
             target = base.copy()
             for i in range(3):
                 target[i] = base[i] + offset[i]
-            # Keep rx, ry, rz from base unchanged (already copied)
-            
+
             robot.send_coords(target, 50, 0)
             print(f"Nudged. Offset: X={offset[0]:+.1f} Y={offset[1]:+.1f} Z={offset[2]:+.1f} | Target: {target[:3]}")
             continue
-        print("Unknown command. Use 1-6, r, l, v, n.")
+        print("Unknown command. Use 1-6/u d r l i o, x/y/z[+-][mm], R=release, L=lock, v, n.")
 
 
 def main():
