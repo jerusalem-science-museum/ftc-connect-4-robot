@@ -55,7 +55,8 @@ class RobotCommunicator(IRobot):
         self.ARM_SPEED = 100
         self.ARM_SPEED_PRECISE = 50
         self.MOVE_TIMEOUT = 1
-        self.DISK_LEVEL = self.coord_json['DISK_DELTA_FROM_HOVER']
+        self.DISK_LEVEL_Y = self.coord_json['DISK_DELTA_FROM_HOVER_Y']
+        self.DISK_LEVEL_R = self.coord_json['DISK_DELTA_FROM_HOVER_R']
         self.killswitch = threading.Event()
         robo_config = get_config()["hardware"]["robot"]
         self.pause_between_moves = robo_config['pause_between_moves']
@@ -165,8 +166,8 @@ class RobotCommunicator(IRobot):
     # Method to pick up a disk form stakc level n with thickness t
     def get_disc_yellow(self, counter: int,thickness: int):
         self.temp_target_coords = self.angle_table["stack-hover-R"] 
-        logger.info(f"picking up disk at delta {self.DISK_LEVEL} from hover, plus {counter} * {thickness} = {self.DISK_LEVEL + (counter*thickness)} from hover")
-        self.disc_x_coord=self.temp_target_coords[0] + self.DISK_LEVEL + (counter*thickness)
+        logger.info(f"picking up disk at delta {self.DISK_LEVEL_Y} from hover, plus {counter} * {thickness} = {self.DISK_LEVEL_Y + (counter*thickness)} from hover")
+        self.disc_x_coord=self.temp_target_coords[0] + self.DISK_LEVEL_Y + (counter*thickness)
         self.temp_target_coords[0]=self.disc_x_coord
         self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
         self._pump_on()
@@ -178,8 +179,8 @@ class RobotCommunicator(IRobot):
     # Method to pick up a disk form stack level n with thickness t
     def get_disc_red(self, counter: int,thickness: int):
         self.temp_target_coords = self.angle_table["stack-hover-L"] 
-        logger.info(f"picking up disk at delta {self.DISK_LEVEL} from hover, plus {counter} * {thickness} = {self.DISK_LEVEL + (counter*thickness)} from hover")
-        self.disc_x_coord = self.temp_target_coords[0] + self.DISK_LEVEL + (counter*thickness)
+        logger.info(f"picking up disk at delta {self.DISK_LEVEL_R} from hover, plus {counter} * {thickness} = {self.DISK_LEVEL_R + (counter*thickness)} from hover")
+        self.disc_x_coord = self.temp_target_coords[0] + self.DISK_LEVEL_R + (counter*thickness)
         self.temp_target_coords[0]=self.disc_x_coord
         self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
         self._pump_on()
