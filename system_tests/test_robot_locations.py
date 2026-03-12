@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from connect4_engine.hardware.mock import ArduinoPumpNoOp
 from connect4_engine.hardware.robot import RobotCommunicator
+from connect4_engine.utils.config import resolve_port
 
 # Project root (parent of system_tests)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -150,7 +151,8 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
 
 def main():
     parser = argparse.ArgumentParser(description="Robot location test with edit mode after each step.")
-    parser.add_argument("--port", default="COM11", help="Robot COM port")
+    robot_port = resolve_port("robot")
+    parser.add_argument("--port", default=robot_port, help="Robot COM port")
     parser.add_argument("--json-path", type=Path, default=None, help="Locations JSON (default: connect4_engine/hardware/legacy_coords.json)")
     parser.add_argument("--no-edit", action="store_true", help="Run sequence without entering edit mode")
     parser.add_argument("--nudge-mm", type=float, default=3, help="Nudge step in mm (default 3)")
@@ -163,8 +165,6 @@ def main():
 
     with open(json_path, "r") as f:
         coord_json = json.load(f)
-
-
     pump = ArduinoPumpNoOp()
     robot = RobotCommunicator(com_port=args.port, pump=pump, coord_json=coord_json)
     seq = input("which sequence? \n1. get puck sequence\n2. drop positions\n")

@@ -6,8 +6,10 @@ logging:
 
 hardware:
   robot:
-    port: "COM11"  # or load from config
+    portwin: "COM11"  # or load from config
+    portlinux: "/dev/ttyACM0"
     angles_file: "robot_arm/robot_angles.json"  # path relative to project root
   arduino:
-    port: "COM3"
+    portwin: "COM3"
+    portlinux: ["/dev/pts/4", "/dev/ttyUSB0"] # try the virtual connection first, then the real one.
     baudrate: 115200

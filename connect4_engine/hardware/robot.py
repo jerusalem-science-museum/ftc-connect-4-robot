@@ -39,7 +39,7 @@ class IRobot(ABC):
 
 
 class RobotCommunicator(IRobot):
-    def __init__(self, com_port: str = "COM11", pump: Arduino = None, coord_json: dict = None, json_path: str = None):
+    def __init__(self, com_port: str | None, pump: Arduino = None, coord_json: dict = None, json_path: str = None):
         if pump is None:
             raise ValueError("pump must be provided")
         self.pump = pump
