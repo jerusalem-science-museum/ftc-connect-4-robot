@@ -1,7 +1,7 @@
 {
   "ENTRY_PLANE": 256,
   "BOARD_PLANE": 312,
-  "DISK_LEVEL": 170,
+  "DISK_DELTA_FROM_HOVER": 5,
   "ARM_SPEED": 50,
   "red_puck_thickness": 10,
   "yellow_puck_thickness": 15,
