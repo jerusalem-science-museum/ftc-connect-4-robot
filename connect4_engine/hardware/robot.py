@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 import threading
 import time
 import json
-from utils.config import get_config
 
 from pymycobot import MyCobot280
 
+from connect4_engine.utils.config import get_config
 from connect4_engine.utils.logger import logger
 from connect4_engine.hardware.arduino import ArduinoCommunicator as Arduino
 
@@ -78,7 +78,7 @@ class RobotCommunicator(IRobot):
                 self.mc.sync_send_angles(angle, speed, self.MOVE_TIMEOUT)
         if(self.pause_between_moves):
             input('press <Enter> to proceed.')
-            
+
     # check if you should ky
     def check_exit(self):
         if(self.killswitch.is_set()):
