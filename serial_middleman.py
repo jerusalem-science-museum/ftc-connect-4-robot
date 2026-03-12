@@ -90,7 +90,7 @@ def run(port: str, baud: int):
                         data = os.read(master_fd, 4096)
                     except OSError:
                         # Slave side not connected yet, back off
-                        input("connect app and type ! to retry connection.")
+                        input("couln't connect to main app. \nconnect app and type ! to retry connection.")
                         master_is_connected = False
                         continue
                     if data:
