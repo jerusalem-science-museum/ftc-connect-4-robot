@@ -11,5 +11,5 @@ hardware:
     angles_file: "robot_arm/robot_angles.json"  # path relative to project root
   arduino:
     portwin: "COM3"
-    portlinux: ["/dev/pts/4", "/dev/ttyUSB0"] # try the virtual connection first, then the real one.
+    portlinux: "/dev/pts/4" #, "/dev/ttyUSB0"] # try the virtual connection first, then the real one.
     baudrate: 115200
