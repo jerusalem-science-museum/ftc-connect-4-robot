@@ -109,7 +109,7 @@ def run(port: str, baud: int):
                         return
                     if line == "!":
                         master_is_connected = True
-                    if line.startswith("<"):
+                    elif line.startswith("<"):
                         # Send to Python app
                         msg = line[1:].encode("utf-8") + b"\n"
                         os.write(master_fd, msg)
