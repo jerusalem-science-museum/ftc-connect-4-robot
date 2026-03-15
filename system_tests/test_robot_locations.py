@@ -36,10 +36,12 @@ def get_puck_sequence():
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
     steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
     steps.append(("stack-hover-L", "coords", ("angle_table", "stack-hover-L"), 50, 0))
-    steps.append(("stack-hover-L-pickup", "coords", ("angle_table", "stack-hover-L-pickup"), 50, 0))
+    steps.append(("stack-hover-L-pickup", "coords", ("angle_table", "stack-hover-L-pickup"), 50, 1))
+    steps.append(("stack-hover-L", "coords", ("angle_table", "stack-hover-L"), 50, 1))
     steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
     steps.append(("stack-hover-R", "coords", ("angle_table", "stack-hover-R"), 50, 0))
     steps.append(("stack-hover-R-pickup", "coords", ("angle_table", "stack-hover-R-pickup"), 50, 0))
+    steps.append(("stack-hover-R", "coords", ("angle_table", "stack-hover-R"), 50, 0))
     steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
     return steps
@@ -74,7 +76,7 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
     """Keyboard loop: nudge X/Y/Z, release, lock, save, next."""
     name, kind, key = step
     print(f"\n[Edit mode] Step: {name} (index {step_index})")
-    print("  1/u/+X  2/d/-X  3/r/+Y  4/l/-Y  5/i/+Z  6/o/-Z  |  x/y/z[+-]<mm>[l]  |  append 'l' for linear  |  R=release  L=lock  v=save  n=next (no save)")
+    print("  1/u/+X  2/d/-X  3/r/+Y  4/l/-Y  5/i/+Z  6/o/-Z  |  x/y/z[+-]<mm>[l]  |  'l'=linear  g=get pos  R=release  L=lock  v=save  n=next")
 
     # Initialize base coordinate from JSON and offset accumulator
     if kind == "coords":
@@ -116,6 +118,18 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
                 json.dump(coord_json, f, indent=2)
             print(f"Saved to {json_path}")
             return
+        if cmd.lower() == "g":
+            if kind == "angles":
+                pos = robot.get_current_angles()
+                label = "Angles"
+            else:
+                pos = robot.get_current_coords()
+                label = "Coords"
+            if pos is None:
+                print("Could not read current position.")
+            else:
+                print(f"{label}: {pos}")
+            continue
         if cmd == "R":
             robot.release_servos()
             print("Servos released. Move arm by hand, then press 'L' to lock.")
