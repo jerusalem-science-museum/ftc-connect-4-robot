@@ -63,14 +63,10 @@ int main(int argc, char** argv) {
       // std::cout << line;
       if(analyze) {
         std::vector<int> scores = solver.analyze(P, weak);
-        // Find an iterator to the largest element
-        auto maxElementIterator = std::max_element(scores.begin(), scores.end());
-
-        // Calculate the index by subtracting the begin() iterator
-        int indexOfLargest = std::distance(scores.begin(), maxElementIterator);
-
-        std::cout << indexOfLargest << std::endl; // idx starts from 0 as we like yay
-        // for(int i = 0; i < Position::WIDTH; i++) std::cout << " " << scores[i];
+        for (const int& score : scores) {
+          std::cout << score << " ";
+        }
+        std::cout << std::endl;
       }
       else {
         int score = solver.solve(P, weak);

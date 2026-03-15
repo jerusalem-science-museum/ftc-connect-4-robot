@@ -1,48 +1,61 @@
-from typing import Callable
-from core.board import Board
-from core.ai import AIPlayerDummy, AIPascalPons
-from hardware.robot import IRobot
-from hardware.arduino import IArduino
-from utils.logger import logger
+
+from asyncio import FIRST_COMPLETED
+from connect4_engine.core.board import Board
+from connect4_engine.core.ai import AIPascalPons
+from connect4_engine.hardware.robot import RobotCommunicator
+from connect4_engine.hardware.arduino import ArduinoCommunicator
+from connect4_engine.utils.logger import logger
+import threading
+import sys
 class Connect4Game:
 
     PLAYER_COLOR = Board.P_RED
     AI_COLOR = Board.P_YELLOW
     def __init__(self,
-                 arduino: IArduino,
-                 robot: IRobot,
+                 arduino: ArduinoCommunicator,
+                 robot: RobotCommunicator,
                  player_starts: bool = False):
         self.board = Board()
-        self.ai = AIPascalPons(ai_executable_path="connect4_engine/core/c4solver.exe")
+        solver = "connect4_engine/core/c4solver" + ("" if sys.platform == "linux" else ".exe")
+        self.ai = AIPascalPons(ai_executable_path=solver)
         self.robot = robot
         self.logger = logger
         self.arduino = arduino
         self.arduino.set_on_puck_dropped_callback(self.piece_dropped_in_board)
         self.arduino.set_game_start_callback(self.game_start)
+        self.arduino.set_interrupt_callback(self.interrupt)
         self.turns_taken = {'player': 0, 'ai': 0}
         self.player_starts = player_starts
-        self.turn = 'ai'
+        self.turn = 'player'
+        self.gave_player_puck = False
+        self.first_game = True # first time we don't need to reset the board.
         # possibly setup robot and arduino if not done elsewhere
 
+    def interrupt(self):
+        self.robot.killswitch.set()
+
     def game_start(self):
-        # initial turn
-        self.logger.info("Game started!")
-        if self.player_starts:
-            self.turn = 'player'
+        # initial turn, user always starts. Reset board and turns for a new game.
+        self.logger.info("Game starting...")
+        if self.turns_taken['player'] > 0:
+            self.game_over("resetting dirty game")
+        self.board.reset()
+        self.turns_taken = {'player': 0, 'ai': 0}
+        self.turn = 'player'
+        if not self.gave_player_puck:
             self.robot.give_player_puck(self.turns_taken['player'])
-        else:
-            self.turn = 'ai'
-            self.ai_turn()
 
     def game_over(self, message: str):
         """
-        Handle game over scenario
+        Handle game over scenario. Does not reset the board so callers can detect
+        winner/draw and show "Play again?"; they should call board.reset() when starting a new game.
         """
         self.logger.info(message)
         self.board.display()
-        self.arduino.reset()
+        self.arduino.reset(self.board.get_column_stack())
         self.robot.reset()
-        self.board.reset()
+        # Board and turns are not reset here so callers can detect winner/draw and show "Play again?".
+        # They are reset in game_start() when starting a new game.
     
     def piece_dropped_in_board(self, column: int):
         """
@@ -50,6 +63,7 @@ class Connect4Game:
         note we're only updating the board when the ledstrip detects a piece drop,
         not just when we tell the robot to insert it there.
         """
+        self.gave_player_puck = False # no puck in cartridge anymore.
         self.turns_taken[self.turn] += 1
         if self.turn == 'ai':
             self.logger.error("board isn't supposed to see ai moves bc they fall under the ledstrip!")
@@ -77,13 +91,13 @@ class Connect4Game:
         return False
     
     def ai_turn(self):
-        # AI's turn 
+        # AI's turn
         ai_column = self.ai.choose_move(self.board)
         self.robot.drop_piece(ai_column, self.turns_taken['ai'])
         self.turns_taken['ai'] += 1
         self.board.drop_piece(ai_column, Connect4Game.AI_COLOR) # ledstrip doesn't detect ai piece drop bc it falls under it.
-        self.logger.info(f"AI dropped piece in column {ai_column}")
         if self.check_winner():
             return
         self.turn = 'player'
         self.robot.give_player_puck(self.turns_taken['player'])
+        self.gave_player_puck = True

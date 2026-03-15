@@ -5,8 +5,8 @@ const int load_pin = 3;     //165 - read
 const int latch_pin = 4;    //595 - write
 const int btn_pin = 5;      //The start button
 const int btn_ms_time = 1;  //Time for button to register a press
-const int pump_pin = 7;
-const int valve_pin = 6;
+const int pump_pin = 5;
+const int release_pump_pin = 6;
 const int DEBOUNCE_MS = 1000;
 unsigned long last_change_ms = 0;
 byte solenoid_state = 0;
@@ -16,31 +16,19 @@ unsigned long pumpStartTime = 0;
 const unsigned long pumpTimeout = 30000UL;  // 30 seconds in ms
 bool pumpRunning = false;
 
-//binary protocol cmd section prefixes
-typedef enum {
-  PUMP_CMD = 0b1,
-  DISC_CMD = 0b10,
-  BTN_CMD = 0b11,
-  SOLENOID_CMD = 0b100
-} CMDS;
-
-
 void setup() {
   Serial.begin(115200);
   Serial.println("setting up");
   pinMode(latch_pin, OUTPUT);
   pinMode(load_pin, OUTPUT);
   pinMode(btn_pin, INPUT);
-
-  digitalWrite(pump_pin, HIGH);  // OFF (active-low)
-  digitalWrite(valve_pin, LOW);  // exhaust OPEN
-
-  digitalWrite(pump_pin, LOW);
-  digitalWrite(valve_pin, LOW);
+  pinMode(pump_pin, OUTPUT);
+  pinMode(release_pump_pin, OUTPUT);
 
   digitalWrite(load_pin, HIGH);
   digitalWrite(latch_pin, HIGH);
-
+  digitalWrite(pump_pin, LOW);
+  digitalWrite(release_pump_pin, LOW);
 
   SPI.begin();
   SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
@@ -48,7 +36,19 @@ void setup() {
   writeToSr(solenoid_state);
   turn_off_solenoids();
   Serial.println("START"); // later on will only turn on when button is pressed.
+  pump_on_off();
 }
+
+void pump_on_off()
+{
+  digitalWrite(pump_pin, HIGH);
+  digitalWrite(release_pump_pin, LOW);
+  delay(1000);
+  digitalWrite(pump_pin, LOW);
+  digitalWrite(release_pump_pin, HIGH);
+  delay(1000);
+}
+
 void loop() {
   turn_off_solenoids();
   // handleDiscDetection();
@@ -67,19 +67,18 @@ void handlePump() {
     // byte msg = build_message_byte(PUMP_CMD, 0, 0);
     // Serial.write(msg);
 
-
   }
 }
 void turnOnPump() {
   digitalWrite(pump_pin, LOW);
-  digitalWrite(valve_pin, HIGH);
+  digitalWrite(release_pump_pin, HIGH);
   pumpStartTime = millis();
   pumpRunning = true;
 }
 
 void shutOffPump() {
   digitalWrite(pump_pin, HIGH);
-  digitalWrite(valve_pin, LOW);
+  digitalWrite(release_pump_pin, LOW);
   pumpRunning = false;
 }
 void update165() {
@@ -113,16 +112,6 @@ void handleDiscDetection() {
   last_data = data;
 }
 
-//cmd - What are we sending? (3 bits)
-//val - Value we send (4 bits)
-//is_ack - Are we answering or initiating (1 bit)
-uint8_t build_message_byte(CMDS cmd, byte val, byte is_ack) {
-  byte msg = 0;
-  msg |= (is_ack & 0b1) << 7;
-  msg |= (cmd & 0b111) << 4;
-  msg |= (val & 0b1111);
-  return msg;
-}
 
 int bit_index(byte x) {
   // int i = 0;
@@ -146,11 +135,11 @@ void handleButtonPress() {
     if (pressed == HIGH) {
       pressStart = millis();
     } else if (millis() - pressStart >= btn_ms_time) {
-      byte msg = build_message_byte(BTN_CMD, 1, 0);
-      Serial.write(msg);
+      Serial.println("START");
     }
   }
 }
+
 
 void turn_off_solenoids()
 {
@@ -160,8 +149,7 @@ void turn_off_solenoids()
     solenoid_state = 1 << i;
     sprintf(msg,"LOG turn off solenoid %d w value %d",i, solenoid_state);
     Serial.println(msg);
-    writeToSr(solenoid_state);
-
+    writeToSr(1 << i);
     delay(1000);
   }
   // if (val < 0 || val > 7) break;
@@ -185,16 +173,7 @@ void handle_cmd(String msg) {
   String cmd = msg.substring(0,cmdEndIdx);
   if(cmd == "RESET")
     turn_off_solenoids();
-  //   case PUMP_CMD:
-  //     if (val == 1) {
-  //       turnOnPump();
-  //     } else if (val ==  0) {
-  //       shutOffPump();
-  //     }
-  //     break;
-  // }
-  // if (success == 1)
-  //   ack(msg);
+
 }
 
 

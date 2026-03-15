@@ -209,3 +209,9 @@ playing around.ipynb
 .vscode/settings.json
 7x6.book
 connect4_engine/core/connect4ai/7x6_small.book
+connect4_engine/core/connect4ai/c4solver.exe
+connect4_engine/core/connect4ai/generator.exe
+connect4_engine/core/connect4ai/generator.o
+connect4_engine/core/connect4ai/main.o
+connect4_engine/core/connect4ai/Solver.o
+connect4_engine/core/connect4ai/connect4/nul
