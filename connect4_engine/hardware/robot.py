@@ -101,6 +101,24 @@ class RobotCommunicator(IRobot):
         if(self.pause_between_moves):
             input('press <Enter> to proceed.')
 
+    def send_coords_interpolated(self, target_coords, speed, num_points=3):
+        """Move to target_coords by interpolating num_points waypoints from current position.
+        Only interpolates x, y, z; rx, ry, rz are taken from target_coords."""
+        self.check_exit()
+        start = self.mc.get_coords()
+        if start is None or len(start) < 6:
+            # Fallback to direct move if we can't read current position
+            self.send_coords(target_coords, speed, 0)
+            return
+        for i in range(1, num_points + 1):
+            t = i / num_points
+            waypoint = [
+                start[j] + (target_coords[j] - start[j]) * t
+                for j in range(3)
+            ] + list(target_coords[3:])
+            self.check_exit()
+            self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
+
     def get_current_angles(self):
         """Return current joint angles (for location edit flow)."""
         return self.mc.get_angles()

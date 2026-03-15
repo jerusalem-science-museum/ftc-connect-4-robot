@@ -67,6 +67,8 @@ def run_step(robot, coord_json, step):
     value = get_value(coord_json, key)
     if kind == "angles":
         robot.send_angles(value, speed)
+    elif mode == 1:
+        robot.send_coords_interpolated(value, speed)
     else:
         robot.send_coords(value, speed, mode)
     return name, kind, key
@@ -182,8 +184,11 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
             for i in range(3):
                 target[i] = base[i] + offset[i]
 
-            robot.send_coords(target, 50, move_mode)
-            mode_label = " [linear]" if move_mode == 1 else ""
+            if move_mode == 1:
+                robot.send_coords_interpolated(target, 50)
+            else:
+                robot.send_coords(target, 50, 0)
+            mode_label = " [interpolated]" if move_mode == 1 else ""
             print(f"Nudged{mode_label}. Offset: X={offset[0]:+.1f} Y={offset[1]:+.1f} Z={offset[2]:+.1f} | Target: {target[:3]}")
             continue
         print("Unknown command. Use 1-6/u d r l i o, x/y/z[+-][mm], R=release, L=lock, v, n.")
