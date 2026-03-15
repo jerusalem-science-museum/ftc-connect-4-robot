@@ -111,15 +111,17 @@ class RobotCommunicator(IRobot):
         if start is None or len(start) < 6:
             self.send_coords(target_coords, speed, 0)
             return
+        print('start: {start}\nend: {target_coords}')
         dist = math.sqrt(sum((target_coords[j] - start[j]) ** 2 for j in range(3)))
         num_points = max(1, round(dist / step_mm))
+        print(f'dist: {dist}. numpoints: {num_points}')
+        self.check_exit()
         for i in range(1, num_points + 1):
             t = i / num_points
             waypoint = [
                 start[j] + (target_coords[j] - start[j]) * t
                 for j in range(3)
             ] + list(target_coords[3:])
-            self.check_exit()
             self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
 
     def get_current_angles(self):
