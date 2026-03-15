@@ -19,7 +19,8 @@ A robotic Connect 4 game where a MyCobot 280 robot arm plays against a human pla
      │  Robot   │ │   Arduino      │
      │  Arm     │ │ - LED Strip    │
      │  (via    │ | - Solenoids    │
-     │pymycobot)│ │ - Sensors      │
+     │pymycobot)│ │ - Sensors      |
+     │          | | - Robot Pump   |
      └──────────┘ └────────────────┘
 ```
 
@@ -28,8 +29,8 @@ A robotic Connect 4 game where a MyCobot 280 robot arm plays against a human pla
 The system consists of three main controllers:
 
 1. **PC Main Controller** - Orchestrates gameplay, runs AI, manages state
-2. **Arduino Controller** - Handles LED strip, solenoid puck release, drop detection sensors
-3. **MyCobot 280 Robot Arm** - Picks and places pucks (using connected pump), delivers pucks to player
+2. **Arduino Controller** - Handles LED strip, solenoid puck release, drop detection sensors, pump activation
+3. **MyCobot 280 Robot Arm** - Picks and places pucks (using arduino pump), delivers pucks to player
 
 ## Key Components
 
