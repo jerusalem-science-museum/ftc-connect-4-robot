@@ -111,7 +111,7 @@ class RobotCommunicator(IRobot):
         if start is None or len(start) < 6:
             self.send_coords(target_coords, speed, 0)
             return
-        print('start: {start}\nend: {target_coords}')
+        print(f'start: {start[:3]}\nend:   {list(target_coords[:3])}')
         dist = math.sqrt(sum((target_coords[j] - start[j]) ** 2 for j in range(3)))
         num_points = max(1, round(dist / step_mm))
         print(f'dist: {dist}. numpoints: {num_points}')
