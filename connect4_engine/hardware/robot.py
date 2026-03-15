@@ -101,15 +101,18 @@ class RobotCommunicator(IRobot):
         if(self.pause_between_moves):
             input('press <Enter> to proceed.')
 
-    def send_coords_interpolated(self, target_coords, speed, num_points=3):
-        """Move to target_coords by interpolating num_points waypoints from current position.
-        Only interpolates x, y, z; rx, ry, rz are taken from target_coords."""
+    def send_coords_interpolated(self, target_coords, speed, step_mm=10):
+        """Move to target_coords by interpolating waypoints from current position.
+        Only interpolates x, y, z; rx, ry, rz are taken from target_coords.
+        Computes number of waypoints so each step is ~step_mm apart."""
+        import math
         self.check_exit()
         start = self.mc.get_coords()
         if start is None or len(start) < 6:
-            # Fallback to direct move if we can't read current position
             self.send_coords(target_coords, speed, 0)
             return
+        dist = math.sqrt(sum((target_coords[j] - start[j]) ** 2 for j in range(3)))
+        num_points = max(1, round(dist / step_mm))
         for i in range(1, num_points + 1):
             t = i / num_points
             waypoint = [
