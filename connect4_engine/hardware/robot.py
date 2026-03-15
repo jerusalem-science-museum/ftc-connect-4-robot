@@ -182,6 +182,8 @@ class RobotCommunicator(IRobot):
         logger.info(f"picking up disk at delta {self.DISK_LEVEL_R} from hover, plus {counter} * {thickness} = {self.DISK_LEVEL_R + (counter*thickness)} from hover")
         self.disc_x_coord = self.temp_target_coords[0] + self.DISK_LEVEL_R + (counter*thickness)
         self.temp_target_coords[0]=self.disc_x_coord
+        logger.debug(f'current location: {self.mc.get_coords()}')
+        logger.debug(f'next location: {self.temp_target_coords}')
         self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
         self._pump_on()
         time.sleep(1)

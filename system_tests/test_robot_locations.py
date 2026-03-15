@@ -74,7 +74,7 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
     """Keyboard loop: nudge X/Y/Z, release, lock, save, next."""
     name, kind, key = step
     print(f"\n[Edit mode] Step: {name} (index {step_index})")
-    print("  1/u/+X  2/d/-X  3/r/+Y  4/l/-Y  5/i/+Z  6/o/-Z  |  x/y/z[+-]<mm>  |  R=release  L=lock  v=save  n=next (no save)")
+    print("  1/u/+X  2/d/-X  3/r/+Y  4/l/-Y  5/i/+Z  6/o/-Z  |  x/y/z[+-]<mm>[l]  |  append 'l' for linear  |  R=release  L=lock  v=save  n=next (no save)")
 
     # Initialize base coordinate from JSON and offset accumulator
     if kind == "coords":
@@ -130,27 +130,29 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
         if cmd_lower in spatial_map:
             cmd = spatial_map[cmd_lower]
         # Parse axis nudge: x/y/z[+-][mm] or [lrudio][mm]
-        axis_match = re.match(r'^([xyz])([+-]?)(\d*\.?\d*)$', raw, re.IGNORECASE)
-        spatial_nudge = re.match(r'^([lrudio])(\d*\.?\d*)$', raw.lower())
+        axis_match = re.match(r'^([xyz])([+-]?)(\d*\.?\d*)(l?)$', raw, re.IGNORECASE)
+        spatial_nudge = re.match(r'^([lrudio])(\d*\.?\d*)(l?)$', raw.lower())
         if axis_match or spatial_nudge or cmd in "123456":
             if kind != "coords":
                 print("Nudge only for coord steps. Use release/lock for angle steps.")
                 continue
 
             if axis_match:
-                axis_char, sign_char, amount_str = axis_match.groups()
+                axis_char, sign_char, amount_str, linear_flag = axis_match.groups()
                 axis_idx = {"x": 0, "y": 1, "z": 2}[axis_char.lower()]
                 if sign_char:
                     last_sign[axis_idx] = 1 if sign_char == "+" else -1
                 amount = float(amount_str) if amount_str else nudge_mm
+                move_mode = 1 if linear_flag.lower() == "l" else 0
                 offset[axis_idx] += last_sign[axis_idx] * amount
             elif spatial_nudge:
-                key_char, amount_str = spatial_nudge.groups()
+                key_char, amount_str, linear_flag = spatial_nudge.groups()
                 # l=-Y r=+Y u=+X d=-X i=+Z o=-Z
                 spatial_axis = {"u": (0, 1), "d": (0, -1), "r": (1, 1), "l": (1, -1), "i": (2, 1), "o": (2, -1)}
                 axis_idx, sign = spatial_axis[key_char]
                 last_sign[axis_idx] = sign
                 amount = float(amount_str) if amount_str else nudge_mm
+                move_mode = 1 if linear_flag == "l" else 0
                 offset[axis_idx] += sign * amount
             else:
                 idx = int(cmd) - 1
@@ -159,14 +161,16 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
                 sign = 1 if idx % 2 == 0 else -1
                 last_sign[axis_idx] = sign
                 offset[axis_idx] += sign * nudge_mm
+                move_mode = 0
 
             # Compute target as base + accumulated offset
             target = base.copy()
             for i in range(3):
                 target[i] = base[i] + offset[i]
 
-            robot.send_coords(target, 50, 0)
-            print(f"Nudged. Offset: X={offset[0]:+.1f} Y={offset[1]:+.1f} Z={offset[2]:+.1f} | Target: {target[:3]}")
+            robot.send_coords(target, 50, move_mode)
+            mode_label = " [linear]" if move_mode == 1 else ""
+            print(f"Nudged{mode_label}. Offset: X={offset[0]:+.1f} Y={offset[1]:+.1f} Z={offset[2]:+.1f} | Target: {target[:3]}")
             continue
         print("Unknown command. Use 1-6/u d r l i o, x/y/z[+-][mm], R=release, L=lock, v, n.")
 
