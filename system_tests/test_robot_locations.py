@@ -267,7 +267,7 @@ def main():
         robot = RobotCommunicator(com_port=args.port, pump=pump, coord_json=coord_json)
     else:
         pump = ArduinoPumpNoOp()
-        robot = RobotCommunicator(com_port=args.port, coord_json=coord_json)
+        robot = RobotCommunicator(com_port=args.port, pump=pump, coord_json=coord_json)
 
     if (seq == '1'):
         sequence = get_puck_sequence()

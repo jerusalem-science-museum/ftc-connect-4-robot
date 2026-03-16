@@ -246,7 +246,7 @@ class RobotCommunicator(IRobot):
     def drop_in_window(self):
        #logger.debug("droping disc in window")
        self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED)        
-       self.send_coords(self.angle_table["in-window"], self.ARM_SPEED, 1, step_per_mm=30)
+       self.send_coords(self.angle_table["in-window"], self.ARM_SPEED, 1)
        self.pump_release_and_off()
        self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED, 0) 
 
@@ -256,7 +256,7 @@ class RobotCommunicator(IRobot):
         if n is not None and 0 <= n <= 6:
             # logger.debug(f"Move to chess position {n}, Coords: {self.chess_table[n]}")
             self.send_coords(self.chess_table[n], self.ARM_SPEED)
-            self.send_coords(self.drop_table[n], self.ARM_SPEED, 1, step_per_mm=30)
+            self.send_coords(self.drop_table[n], self.ARM_SPEED, 1)
             self.pump_release_and_off()
             self.send_coords(self.chess_table[n], self.ARM_SPEED)
         else:
