@@ -8,13 +8,45 @@ import json
 import re
 import sys
 from pathlib import Path
+import serial
+from connect4_engine.hardware.arduino import ArduinoCommunicator
 from connect4_engine.hardware.mock import ArduinoPumpNoOp
 from connect4_engine.hardware.robot import RobotCommunicator
 from connect4_engine.utils.config import resolve_port
-
+from time import sleep
 # Project root (parent of system_tests)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_JSON_PATH = PROJECT_ROOT / "connect4_engine" / "hardware" / "legacy_coords.json"
+
+def get_puck_pickup_sequence(side="R"):
+    """Sequence to mark each puck location in the stack, top to bottom.
+    Picks up each puck, returns to hover, discards, then moves to next."""
+    steps = []
+    steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
+    steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
+    steps.append((f"stack-hover-{side}", "coords", ("angle_table", f"stack-hover-{side}"), 50, 0))
+    for i in range(21):
+        steps.append((f"stack-{side}-{i}", "coords", ("angle_table", f"stack-{side}-{i}"), 50, 1))
+        steps.append(("pump-on", "pump", None, None, None))
+        sleep(0.5)
+        steps.append(("pump-off", "pump", None, None, None))
+        steps.append((f"stack-hover-{side}", "coords", ("angle_table", f"stack-hover-{side}"), 50, 1))
+        steps.append((f"discard-puck-{side}", "coords", ("angle_table", f"discard-puck-{side}"), 50, 0))
+        steps.append(("pump-release", "pump", None, None, None))
+        steps.append((f"stack-hover-{side}", "coords", ("angle_table", f"stack-hover-{side}"), 50, 0))
+    return steps
+
+def test_infinite_drop():
+    """
+    the big one. just try to play infinite times, reset and everything. simulate the whole game.
+    """
+    steps = []
+    steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
+    steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
+    steps.append(("stack-hover-L", "coords", ("angle_table", "stack-hover-L"), 50, 0))
+    steps.append(("stack-hover-L-pickup", "coords", ("angle_table", "stack-hover-L-pickup"), 50, 1))
+    # for(i in range(30)):
+    pass
 
 def get_drop_table_sequence():
     steps = []
@@ -49,7 +81,10 @@ def get_puck_sequence():
 
 def get_value(coord_json, key):
     t, k = key
-    return coord_json[t][k]
+    try:
+        return coord_json[t][k]
+    except (KeyError, IndexError):
+        return None
 
 
 def set_value(coord_json, key, value):
@@ -64,12 +99,23 @@ def set_value(coord_json, key, value):
 
 def run_step(robot, coord_json, step):
     name, kind, key, speed, mode = step
+    if kind == "pump":
+        if name == "pump-on":
+            robot._pump_on()
+        elif name == "pump-release":
+            robot.pump_release_and_off()
+        elif name == "pump-off":
+            robot._pump_off()
+        return name, kind, key, True
     value = get_value(coord_json, key)
+    if value is None:
+        print(f"  (no saved position for {key[1]} — skipping move)")
+        return name, kind, key, False
     if kind == "angles":
         robot.send_angles(value, speed)
     else:
         robot.send_coords(value, speed, mode)
-    return name, kind, key
+    return name, kind, key, True
 
 
 def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_index, nudge_mm=3, moved=True):
@@ -80,7 +126,8 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
 
     # Initialize base coordinate from JSON (or current robot pos if we skipped the move)
     if kind == "coords":
-        base = list(get_value(coord_json, key)) if moved else list(robot.get_current_coords())
+        saved = get_value(coord_json, key)
+        base = list(saved) if (moved and saved is not None) else list(robot.get_current_coords())
         offset = [0, 0, 0]  # Accumulated offset for X, Y, Z only
     else:
         base = None
@@ -211,26 +258,38 @@ def main():
 
     with open(json_path, "r") as f:
         coord_json = json.load(f)
-    pump = ArduinoPumpNoOp()
-    robot = RobotCommunicator(com_port=args.port, pump=pump, coord_json=coord_json)
-    seq = input("which sequence? \n1. get puck sequence\n2. drop positions\n")
+
+    seq = input("which sequence? \n1. get puck sequence\n2. drop positions\n3. puck pickup (R)\n4. puck pickup (L)\n")
+    needs_pump = seq in ('3', '4')
+    if needs_pump:
+        ard_port = resolve_port("arduino")
+        pump = ArduinoCommunicator(ser=serial.Serial(ard_port, 115200))
+        robot = RobotCommunicator(com_port=args.port, pump=pump, coord_json=coord_json)
+    else:
+        pump = ArduinoPumpNoOp()
+        robot = RobotCommunicator(com_port=args.port, coord_json=coord_json)
+
     if (seq == '1'):
         sequence = get_puck_sequence()
     if (seq == '2'):
         sequence = get_drop_table_sequence()
+    if (seq == '3'):
+        sequence = get_puck_pickup_sequence("R")
+    if (seq == '4'):
+        sequence = get_puck_pickup_sequence("L")
     print(f"Running {len(sequence)} steps. Port={args.port}, JSON={json_path}")
 
     skip_move = False
     for i, step in enumerate(sequence):
         name, kind, key, speed, mode = step
         print(f"\n--- Step {i + 1}/{len(sequence)}: {name} ---")
-        moved = not skip_move
         if skip_move:
             print("(skipped move — nudging from current position)")
+            moved = False
             skip_move = False
         else:
-            run_step(robot, coord_json, step)
-        if not args.no_edit:
+            *_, moved = run_step(robot, coord_json, step)
+        if not args.no_edit and kind != "pump":
             result = edit_mode_loop(robot, coord_json, (name, kind, key), json_path, i, moved=moved)
             if result == "skip_move":
                 skip_move = True
