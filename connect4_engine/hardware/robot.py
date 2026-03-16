@@ -103,11 +103,11 @@ class RobotCommunicator(IRobot):
             coordlist = [target_coords]
         for waypoint in coordlist:
             self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
-            for tries in range(3):
-                self.check_exit()
-                if not self.mc.is_in_position(waypoint, 1):
-                    logger.debug(f'try no {tries}')
-                    self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
+            # for tries in range(3):
+            #     self.check_exit()
+            #     if not self.mc.is_in_position(waypoint, 1):
+            #         logger.debug(f'try no {tries}')
+            #         self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
             if(self.pause_between_moves):
                 input('press <Enter> to proceed.')
 
