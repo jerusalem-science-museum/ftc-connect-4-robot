@@ -72,15 +72,15 @@ def run_step(robot, coord_json, step):
     return name, kind, key
 
 
-def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_index, nudge_mm=3):
+def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_index, nudge_mm=3, moved=True):
     """Keyboard loop: nudge X/Y/Z, release, lock, save, next."""
     name, kind, key = step
     print(f"\n[Edit mode] Step: {name} (index {step_index})")
     print("  1/u/+X  2/d/-X  3/r/+Y  4/l/-Y  5/i/+Z  6/o/-Z  |  x/y/z[+-]<mm>[l]  |  'l'=linear  g=get pos  R=release  L=lock  v=save  n=next  N=next (no move)")
 
-    # Initialize base coordinate from JSON and offset accumulator
+    # Initialize base coordinate from JSON (or current robot pos if we skipped the move)
     if kind == "coords":
-        base = list(get_value(coord_json, key))
+        base = list(get_value(coord_json, key)) if moved else list(robot.get_current_coords())
         offset = [0, 0, 0]  # Accumulated offset for X, Y, Z only
     else:
         base = None
@@ -224,13 +224,14 @@ def main():
     for i, step in enumerate(sequence):
         name, kind, key, speed, mode = step
         print(f"\n--- Step {i + 1}/{len(sequence)}: {name} ---")
+        moved = not skip_move
         if skip_move:
-            print("(skipped move)")
+            print("(skipped move — nudging from current position)")
             skip_move = False
         else:
             run_step(robot, coord_json, step)
         if not args.no_edit:
-            result = edit_mode_loop(robot, coord_json, (name, kind, key), json_path, i)
+            result = edit_mode_loop(robot, coord_json, (name, kind, key), json_path, i, moved=moved)
             if result == "skip_move":
                 skip_move = True
 
