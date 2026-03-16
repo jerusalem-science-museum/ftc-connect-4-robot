@@ -68,7 +68,7 @@ def timed(func):
     def wrapper(*args, **kwargs):
         t0 = time.perf_counter()
         result = func(*args, **kwargs)
-        print(f"[TIMER] {func.__name__}: {time.perf_counter() - t0:.3f}s")
+        logger.debug(f"[TIMER] {func.__name__}: {time.perf_counter() - t0:.3f}s")
         return result
     return wrapper
 

@@ -90,7 +90,8 @@ class RobotCommunicator(IRobot):
             logger.error("exit robot thread")
             raise SystemExit
         
-    # Method to send coords with retry logic    
+    # Method to send coords with retry logic   
+    @timed 
     def send_coords(self, target_coords, speed, mode = 0, step_per_mm = 50):
         """
         send coords in a synced fashion. use custom linear func for linear motion as mycobot's linear mode is bad.
