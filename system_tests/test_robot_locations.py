@@ -43,8 +43,8 @@ def test_infinite_drop():
     steps = []
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
     steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
-    steps.append(("stack-hover-L", "coords", ("angle_table", "stack-hover-L"), 50, 0))
-    steps.append(("stack-hover-L-pickup", "coords", ("angle_table", "stack-hover-L-pickup"), 50, 1))
+    steps.append(("stack-hover-red", "coords", ("angle_table", "stack-hover-red"), 50, 0))
+    steps.append(("stack-hover-red-pickup", "coords", ("angle_table", "stack-hover-red-pickup"), 50, 1))
     # for(i in range(30)):
     pass
 
@@ -67,9 +67,9 @@ def get_puck_sequence():
     steps = []
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
     steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
-    steps.append(("stack-hover-L", "coords", ("angle_table", "stack-hover-L"), 50, 0))
-    steps.append(("stack-hover-L-pickup", "coords", ("angle_table", "stack-hover-L-pickup"), 50, 1))
-    steps.append(("stack-hover-L", "coords", ("angle_table", "stack-hover-L"), 50, 1))
+    steps.append(("stack-hover-red", "coords", ("angle_table", "stack-hover-red"), 50, 0))
+    steps.append(("stack-hover-red-pickup", "coords", ("angle_table", "stack-hover-red-pickup"), 50, 1))
+    steps.append(("stack-hover-red", "coords", ("angle_table", "stack-hover-red"), 50, 1))
     steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
     steps.append(("stack-hover-R", "coords", ("angle_table", "stack-hover-R"), 50, 0))
     steps.append(("stack-hover-R-pickup", "coords", ("angle_table", "stack-hover-R-pickup"), 50, 0))

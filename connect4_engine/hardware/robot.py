@@ -3,6 +3,7 @@ import threading
 import time
 import json
 
+import numpy as np
 from pymycobot import MyCobot280
 
 from connect4_engine.utils.config import get_config
@@ -165,19 +166,19 @@ class RobotCommunicator(IRobot):
 
     # Method to move to the top of the left discs stack
     def hover_over_stack_red(self):
-        self.send_coords(self.angle_table["stack-hover-L"], self.ARM_SPEED_PRECISE, 0)
+        self.send_coords(self.angle_table["stack-hover-red"], self.ARM_SPEED_PRECISE, 0)
     
     # Method to move to in front of left discs stack
     def apro_stack_red(self):
-        self.send_coords(self.angle_table["stack-apro-L"], self.ARM_SPEED,0)
+        self.send_coords(self.angle_table["stack-apro-red"], self.ARM_SPEED,0)
 
     # Method to move to the top of the right disks stack
     def hover_over_stack_yellow(self):
-        self.send_coords(self.angle_table["stack-hover-R"], self.ARM_SPEED_PRECISE, 0)
+        self.send_coords(self.angle_table["stack-hover-ylw"], self.ARM_SPEED_PRECISE, 0)
         
     # Method to move to in front of right discs stack
     def apro_stack_yellow(self):
-        self.send_coords(self.angle_table["stack-apro-R"], self.ARM_SPEED)
+        self.send_coords(self.angle_table["stack-apro-ylw"], self.ARM_SPEED)
         # self.send_coords(self.angle_table["stack-apro-R"], self.ARM_SPEED,0)
 
     def _pump_on(self):
@@ -200,32 +201,45 @@ class RobotCommunicator(IRobot):
         """
         print('pump release')
         self.pump.release_pump()
+    
+    def get_puck_loc(self, clr, counter):
+        result = self.angle_table[f"stack-hover-{clr}-start-1st"]
+        start = np.array(result[:3])
+        end = np.array(self.angle_table[f"stack-hover-{clr}-end-21st"][:3])
+        t = counter / 20
+        coords = start + t * (end - start)
+        # Keep orientation from start (indices 3-5)
+        result = self.angle_table[f"stack-hover-{clr}-start-1st"]
+        result[:3] = coords.tolist()
+        return result
+
+
     # Method to pick up a disk form stakc level n with thickness t
     def get_disc_yellow(self, counter: int,thickness: int):
-        self.temp_target_coords = self.angle_table["stack-hover-R-pickup"] 
-        logger.info(f"picking up disk at {counter} * {thickness} = {counter*thickness} from pickup")
-        self.disc_x_coord=self.temp_target_coords[0] + (counter*thickness)
-        self.temp_target_coords[0]=self.disc_x_coord
-        self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
+        self.target_coords = self.get_puck_loc('ylw',counter)
+        # logger.info(f"picking up disk at {counter} * {thickness} = {counter*thickness} from pickup")
+        # self.disc_x_coord=self.temp_target_coords[0] + (counter*thickness)
+        # self.temp_target_coords[0]=self.disc_x_coord
+        self.send_coords(self.target_coords, self.ARM_SPEED, 1)
         self._pump_on()
         time.sleep(1)
         self._pump_off()
         self.send_coords(self.angle_table["stack-hover-R"], self.ARM_SPEED,1)  
         #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)
-	    
+	
     # Method to pick up a disk form stack level n with thickness t
     def get_disc_red(self, counter: int,thickness: int):
-        self.temp_target_coords = self.angle_table["stack-hover-L-pickup"] 
-        logger.info(f"picking up disk at {counter} * {thickness} = {counter*thickness} from pickup")
-        self.disc_x_coord = self.temp_target_coords[0] + (counter*thickness)
-        self.temp_target_coords[0]=self.disc_x_coord
+        self.target_coords = self.get_puck_loc('red',counter)
+        # logger.info(f"picking up disk at {counter} * {thickness} = {counter*thickness} from pickup")
+        # self.disc_x_coord = self.temp_target_coords[0] + (counter*thickness)
+        # self.temp_target_coords[0]=self.disc_x_coord
         logger.debug(f'current location: {self.mc.get_coords()}')
-        logger.debug(f'next location: {self.temp_target_coords}')
-        self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
+        logger.debug(f'next location: {self.target_coords}')
+        self.send_coords(self.target_coords, self.ARM_SPEED, 1)
         self._pump_on()
         time.sleep(1)
         self._pump_off()
-        self.send_coords(self.angle_table["stack-hover-L"], self.ARM_SPEED,1)
+        self.send_coords(self.angle_table["stack-hover-red"], self.ARM_SPEED,1)
         #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)
                     
     # Method to move to the handover window and drop the disk
