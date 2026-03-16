@@ -202,9 +202,9 @@ class RobotCommunicator(IRobot):
         self.pump.release_pump()
     # Method to pick up a disk form stakc level n with thickness t
     def get_disc_yellow(self, counter: int,thickness: int):
-        self.temp_target_coords = self.angle_table["stack-hover-R"] 
-        logger.info(f"picking up disk at delta {self.DISK_LEVEL_Y} from hover, plus {counter} * {thickness} = {self.DISK_LEVEL_Y + (counter*thickness)} from hover")
-        self.disc_x_coord=self.temp_target_coords[0] + self.DISK_LEVEL_Y + (counter*thickness)
+        self.temp_target_coords = self.angle_table["stack-hover-R-pickup"] 
+        logger.info(f"picking up disk at {counter} * {thickness} = {counter*thickness} from pickup")
+        self.disc_x_coord=self.temp_target_coords[0] + (counter*thickness)
         self.temp_target_coords[0]=self.disc_x_coord
         self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
         self._pump_on()
@@ -215,9 +215,9 @@ class RobotCommunicator(IRobot):
 	    
     # Method to pick up a disk form stack level n with thickness t
     def get_disc_red(self, counter: int,thickness: int):
-        self.temp_target_coords = self.angle_table["stack-hover-L"] 
-        logger.info(f"picking up disk at delta {self.DISK_LEVEL_R} from hover, plus {counter} * {thickness} = {self.DISK_LEVEL_R + (counter*thickness)} from hover")
-        self.disc_x_coord = self.temp_target_coords[0] + self.DISK_LEVEL_R + (counter*thickness)
+        self.temp_target_coords = self.angle_table["stack-hover-L-pickup"] 
+        logger.info(f"picking up disk at {counter} * {thickness} = {counter*thickness} from pickup")
+        self.disc_x_coord = self.temp_target_coords[0] + (counter*thickness)
         self.temp_target_coords[0]=self.disc_x_coord
         logger.debug(f'current location: {self.mc.get_coords()}')
         logger.debug(f'next location: {self.temp_target_coords}')

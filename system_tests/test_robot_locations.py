@@ -76,7 +76,7 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
     """Keyboard loop: nudge X/Y/Z, release, lock, save, next."""
     name, kind, key = step
     print(f"\n[Edit mode] Step: {name} (index {step_index})")
-    print("  1/u/+X  2/d/-X  3/r/+Y  4/l/-Y  5/i/+Z  6/o/-Z  |  x/y/z[+-]<mm>[l]  |  'l'=linear  g=get pos  R=release  L=lock  v=save  n=next")
+    print("  1/u/+X  2/d/-X  3/r/+Y  4/l/-Y  5/i/+Z  6/o/-Z  |  x/y/z[+-]<mm>[l]  |  'l'=linear  g=get pos  R=release  L=lock  v=save  n=next  N=next (no move)")
 
     # Initialize base coordinate from JSON and offset accumulator
     if kind == "coords":
@@ -98,9 +98,12 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
         if not raw:
             continue
         cmd = raw[0]
-        if cmd.lower() == "n":
+        if cmd == "n":
             print("Next step (no save).")
             return
+        if cmd == "N":
+            print("Next step (no move, no save).")
+            return "skip_move"
         if cmd.lower() == "v":
             if kind == "angles":
                 current = robot.get_current_angles()
@@ -217,12 +220,19 @@ def main():
         sequence = get_drop_table_sequence()
     print(f"Running {len(sequence)} steps. Port={args.port}, JSON={json_path}")
 
+    skip_move = False
     for i, step in enumerate(sequence):
         name, kind, key, speed, mode = step
         print(f"\n--- Step {i + 1}/{len(sequence)}: {name} ---")
-        run_step(robot, coord_json, step)
+        if skip_move:
+            print("(skipped move)")
+            skip_move = False
+        else:
+            run_step(robot, coord_json, step)
         if not args.no_edit:
-            edit_mode_loop(robot, coord_json, (name, kind, key), json_path, i)
+            result = edit_mode_loop(robot, coord_json, (name, kind, key), json_path, i)
+            if result == "skip_move":
+                skip_move = True
 
     print("\nSequence done.")
 
