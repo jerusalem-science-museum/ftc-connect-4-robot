@@ -91,38 +91,46 @@ class RobotCommunicator(IRobot):
             raise SystemExit
         
     # Method to send coords with retry logic    
-    def send_coords(self, coords, speed, mode = 0):
+    def send_coords(self, target_coords, speed, mode = 0, step_per_mm = 50):
+        """
+        send coords in a synced fashion. use custom linear func for linear motion as mycobot's linear mode is bad.
+        """
         self.check_exit()
-        self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
-        for tries in range(3):
-            self.check_exit()
-            if not self.mc.is_in_position(coords, 1):
-                self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
-        if(self.pause_between_moves):
-            input('press <Enter> to proceed.')
+        if(mode == 1):
+            coordlist = self.get_coords_interpolated(target_coords, step_per_mm)
+        else:
+            coordlist = [target_coords]
+        for waypoint in coordlist:
+            self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
+            for tries in range(3):
+                self.check_exit()
+                if not self.mc.is_in_position(waypoint, 1):
+                    self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
+            if(self.pause_between_moves):
+                input('press <Enter> to proceed.')
 
-    def send_coords_interpolated(self, target_coords, speed, step_mm=50):
-        """Move to target_coords by interpolating waypoints from current position.
+    def get_coords_interpolated(self, target_coords, step_mm):
+        """get list of interpolated waypoints from current position to target (incl.)
         Only interpolates x, y, z; rx, ry, rz are taken from target_coords.
-        Computes number of waypoints so each step is ~step_mm apart."""
+        Computes number of waypoints so each step is ~step_mm apart.
+        replaces the bad linear motion supplied by mycobot."""
         import math
         self.check_exit()
-        start = self.mc.get_coords()
-        if start is None or len(start) < 6:
-            self.send_coords(target_coords, speed, 0)
-            return
+        start = self.get_current_coords()
         print(f'start: {start[:3]}\nend:   {list(target_coords[:3])}')
         dist = math.sqrt(sum((target_coords[j] - start[j]) ** 2 for j in range(3)))
         num_points = max(1, round(dist / step_mm))
         print(f'dist: {dist}. numpoints: {num_points}')
         self.check_exit()
+        waypoints = []
         for i in range(1, num_points + 1):
             t = i / num_points
             waypoint = [
                 start[j] + (target_coords[j] - start[j]) * t
                 for j in range(3)
             ] + list(target_coords[3:])
-            self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
+            waypoints.append(waypoint)
+        return waypoints
 
     def get_current_angles(self):
         """Return current joint angles (for location edit flow)."""
@@ -175,6 +183,7 @@ class RobotCommunicator(IRobot):
         print('pump off')
         self.pump.turn_off_pump()
     
+    @timed
     def pump_release_and_off(self):
         self._pump_open_release_solenoid()
         time.sleep(0.2)
@@ -218,7 +227,7 @@ class RobotCommunicator(IRobot):
     def drop_in_window(self):
        #logger.debug("droping disc in window")
        self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED)        
-       self.send_coords(self.angle_table["in-window"], self.ARM_SPEED, 1)
+       self.send_coords(self.angle_table["in-window"], self.ARM_SPEED, 1, step_per_mm=30)
        self.pump_release_and_off()
        self.send_coords(self.angle_table["handover-window"], self.ARM_SPEED, 0) 
 
@@ -228,7 +237,7 @@ class RobotCommunicator(IRobot):
         if n is not None and 0 <= n <= 6:
             # logger.debug(f"Move to chess position {n}, Coords: {self.chess_table[n]}")
             self.send_coords(self.chess_table[n], self.ARM_SPEED)
-            self.send_coords(self.drop_table[n], self.ARM_SPEED, 1)
+            self.send_coords(self.drop_table[n], self.ARM_SPEED, 1, step_per_mm=30)
             self.pump_release_and_off()
             self.send_coords(self.chess_table[n], self.ARM_SPEED)
         else:
@@ -272,7 +281,3 @@ class RobotCommunicator(IRobot):
     def reset(self):
         self.observe_posture()
         logger.debug("Robot reset to home position")
-
-if __name__ == "__main__":
-    robot = RobotCommunicator()
-    robot.drop_piece(3, 0)  # Drop a puck in column 3, first puck

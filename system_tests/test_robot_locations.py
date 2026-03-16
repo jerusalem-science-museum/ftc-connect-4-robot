@@ -67,8 +67,6 @@ def run_step(robot, coord_json, step):
     value = get_value(coord_json, key)
     if kind == "angles":
         robot.send_angles(value, speed)
-    elif mode == 1:
-        robot.send_coords_interpolated(value, speed)
     else:
         robot.send_coords(value, speed, mode)
     return name, kind, key

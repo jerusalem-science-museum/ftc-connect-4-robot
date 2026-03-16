@@ -3,8 +3,7 @@ from typing import Callable, Optional
 from abc import ABC, abstractmethod
 import serial
 import threading
-from connect4_engine.utils.logger import logger
-
+from connect4_engine.utils.logger import logger, timed
 
 class IArduino(ABC):
 
@@ -95,12 +94,15 @@ class ArduinoCommunicator(IArduino):
             self.send_message("RESET")
         self._accept_moves = False
 
+    @timed
     def turn_on_pump(self):
         self.send_message("PUMP ON")
 
+    @timed
     def turn_off_pump(self):
         self.send_message("PUMP OFF")
-
+    
+    @timed
     def release_pump(self):
         self.send_message("PUMP RELEASE")
         # todo: wait for response ack from arduino
