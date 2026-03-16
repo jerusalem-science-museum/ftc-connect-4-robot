@@ -6,7 +6,7 @@ import json
 from pymycobot import MyCobot280
 
 from connect4_engine.utils.config import get_config
-from connect4_engine.utils.logger import logger
+from connect4_engine.utils.logger import logger, timed
 from connect4_engine.hardware.arduino import ArduinoCommunicator as Arduino
 
 class IRobot(ABC):
