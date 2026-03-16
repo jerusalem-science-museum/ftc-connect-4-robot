@@ -109,6 +109,29 @@ def run(port: str, baud: int):
                         return
                     if line == "!":
                         master_is_connected = True
+                    elif line == "-":
+                        on_msg = "PUMP ON"
+                        print(f'sending {on_msg}')
+                        msg = on_msg.encode("utf-8") + b"\n"
+                        ser.write(msg)
+                        log("cli→ard", msg)
+                    elif line == "=":
+                        on_msg = "PUMP RELEASE"
+                        print(f'sending {on_msg}')
+                        msg = on_msg.encode("utf-8") + b"\n"
+                        ser.write(msg)
+                        time.sleep(0.1)
+                        on_msg = "PUMP OFF"
+                        print(f'sending {on_msg}')
+                        msg = on_msg.encode("utf-8") + b"\n"
+                        ser.write(msg)
+                        log("cli→ard", msg)
+                    elif line == "0":
+                        on_msg = "PUMP OFF"
+                        print(f'sending {on_msg}')
+                        msg = on_msg.encode("utf-8") + b"\n"
+                        ser.write(msg)
+                        log("cli→ard", msg)
                     elif line.startswith("<"):
                         # Send to Python app
                         msg = line[1:].encode("utf-8") + b"\n"
