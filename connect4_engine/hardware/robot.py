@@ -97,7 +97,7 @@ class RobotCommunicator(IRobot):
         """
         send coords in a synced fashion. use custom linear func for linear motion as mycobot's linear mode is bad.
         """
-        logger.debug(f"GOING TO {target_ccords}")
+        logger.debug(f"GOING TO {target_coords}")
         self.check_exit()
         if(mode == 1):
             coordlist = self.get_coords_interpolated(target_coords, step_per_mm)
