@@ -224,7 +224,7 @@ class RobotCommunicator(IRobot):
         self._pump_on()
         time.sleep(1)
         self._pump_off()
-        self.send_coords(self.angle_table["stack-hover-R"], self.ARM_SPEED,1)  
+        self.send_coords(self.angle_table["stack-hover-ylw"], self.ARM_SPEED,1)  
         #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)
 	
     # Method to pick up a disk form stack level n with thickness t
