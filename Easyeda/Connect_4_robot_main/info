@@ -1,0 +1,118 @@
+{
+  "uuid": "a390fdde95f0b64e2a064214dbdc2132",
+  "path": "Offline/Connect_4_robot_main",
+  "name": "Connect_4_robot_main",
+  "content": "",
+  "created_at": "2026-02-12 14:55:59",
+  "updated_at": "2026-03-22 19:21:17",
+  "stick": "",
+  "documents": [
+    {
+      "uuid": "6c4683a90a9b578c755914178469ea5e",
+      "title": "Sheet_1",
+      "description": "",
+      "docType": "1",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "5a9ec2085ad6436d86701332d4451b76": 2,
+        "fee3186e847b42ecb0244c6d4d6aaef8": 1,
+        "ef7ea54d367cdb60f78d056756b992d9": 1,
+        "56b239b0ed3d371e23923578aee91726": 1,
+        "9bc5d46e2bd4176ac7c3958f1aa86225": 1,
+        "506a2f49fd5af7690094a86e81a44ebe": 1
+      },
+      "BOM": [
+        [
+          "Value",
+          "Quantity",
+          "Package",
+          "Components",
+          "CustomPara"
+        ],
+        [
+          "KF2510-6A",
+          1,
+          "CONN-TH_KF2510-6A",
+          "CN1",
+          {
+            "Manufacturer Part": "KF2510-6A针座",
+            "Manufacturer": "null",
+            "Supplier": "LCSC",
+            "Supplier Part": "C27545"
+          }
+        ],
+        [
+          "BUTTON",
+          1,
+          "CONN-TH_KF2510-2A",
+          "D3",
+          {
+            "Manufacturer Part": "KF2510-2A",
+            "Manufacturer": "BOOMELE",
+            "Supplier": "LCSC",
+            "Supplier Part": "C27543"
+          }
+        ],
+        [
+          "HDR-F-2.54_1x15",
+          2,
+          "HDR-F-2.54_1X15",
+          "H4,H5",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "LCSC",
+            "Supplier Part": "C124408"
+          }
+        ],
+        [
+          "Arduino_Nano_Header",
+          1,
+          "DIP-30_L43.18-W15.24-ARDUINONANO",
+          "J2",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ],
+        [
+          "2510-5AGW High bend",
+          1,
+          "CONN-TH_KF2510-5AGW",
+          "PHOTORESISTORS",
+          {
+            "Manufacturer Part": "2510-5A高弯",
+            "Manufacturer": "BOOMELE(博穆精密)",
+            "Supplier": "LCSC",
+            "Supplier Part": "C61410"
+          }
+        ],
+        [
+          "FK2510",
+          1,
+          "CONN-TH_3P-P2.00_KF2510_3A",
+          "PUMP_CONTROLLER",
+          {
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
+          }
+        ]
+      ],
+      "updateTime": 1770913448,
+      "createTime": 1770900959,
+      "histories": [],
+      "created_at": "2026-02-12 14:55:59",
+      "updated_at": "2026-02-12 18:24:08"
+    }
+  ],
+  "sort": [],
+  "title": "Connect_4_robot_main",
+  "foldername": "Connect_4_robot_main",
+  "schfilename": "Connect_4_robot_main.json",
+  "schfilemtime": 1770913464902
+}

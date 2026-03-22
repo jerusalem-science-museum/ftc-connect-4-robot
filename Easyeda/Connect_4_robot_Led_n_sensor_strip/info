@@ -1,0 +1,207 @@
+{
+  "uuid": "d21691280019f613aacbe31f3e7423e9",
+  "path": "Offline/Robot_Led_Stripe_1.25mm",
+  "name": "Robot_Led_Stripe_1.25mm",
+  "content": "4 in a row robot exhibit led and phototransistor stripe\n",
+  "created_at": "2025-08-03 22:07:18",
+  "updated_at": "2025-08-03 23:55:59",
+  "stick": "",
+  "documents": [
+    {
+      "uuid": "2b94a960f389c8008f5fc4ae6cd008ab",
+      "title": "Robot_Led_Stripe_1.25mm",
+      "description": "",
+      "docType": "1",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "bba06611cca5556dc1113c1c28bc7d31": 3,
+        "4d71e3d7354b40c5bb9b936ebf03f2e0": 7,
+        "8594922bf7656e1a593fe27b198cf7ff": 14,
+        "88f75753c4064acd926922831dc5819b": 14,
+        "230bc382ca0246f58f622947b27c87e1": 14,
+        "506a2f49fd5af7690094a86e81a44ebe": 1,
+        "2f48b6d502294543b2a865ead8cb14c2": 1
+      },
+      "BOM": [
+        [
+          "Value",
+          "Quantity",
+          "Package",
+          "Components",
+          "CustomPara"
+        ],
+        [
+          "DF13-10P-1.25DSA",
+          1,
+          "CONN-TH_DF13-10P-1.25DSA",
+          "CN1",
+          {
+            "BOM_Manufacturer Part": "DF13-10P-1.25DSA",
+            "puuid": "82a6f055934c4a96a127ac64ff31e5d2",
+            "uuid": "2f48b6d502294543b2a865ead8cb14c2",
+            "BOM_Supplier": "LCSC",
+            "BOM_Manufacturer": "HRS(广濑)",
+            "BOM_Supplier Part": "C531028",
+            "BOM_JLCPCB Part Class": "Extended Part"
+          }
+        ],
+        [
+          "KF2510-2A",
+          1,
+          "CONN-TH_KF2510-2A",
+          "ECON1",
+          {
+            "BOM_Supplier": "LCSC",
+            "BOM_Manufacturer Part": "KF2510-2A",
+            "BOM_Manufacturer": "BOOMELE",
+            "BOM_Supplier Part": "C27543",
+            "BOM_JLCPCB Part Class": "Extended Part",
+            "puuid": "9ba63133985d42cda948c6301d2bf7d5",
+            "uuid": "506a2f49fd5af7690094a86e81a44ebe"
+          }
+        ],
+        [
+          "LED",
+          14,
+          "LED0603-R-RD_BLUE",
+          "L1,L2,L3,L4,L5,L6,L7,LB1,LB2,LB3,LB4,LB5,LB6,LB7",
+          {
+            "BOM_Supplier": "LCSC",
+            "BOM_Manufacturer": "EVERLIGHT",
+            "BOM_Manufacturer Part": "19-217/BHC-ZL1M2RY/3T",
+            "BOM_Supplier Part": "C72041",
+            "BOM_JLCPCB Part Class": "Basic Part",
+            "puuid": "041cc9180dc046b7bb66bb309da71792",
+            "uuid": "8594922bf7656e1a593fe27b198cf7ff"
+          }
+        ],
+        [
+          "300Ω",
+          3,
+          "R0603",
+          "R1,R2,R3",
+          {
+            "BOM_Manufacturer Part": "0603WAF3000T5E",
+            "puuid": "398691f1f785460098bbe5ee6590333c",
+            "uuid": "bba06611cca5556dc1113c1c28bc7d31",
+            "BOM_Supplier": "LCSC",
+            "BOM_Manufacturer": "UNI-ROYAL(厚声)",
+            "BOM_Supplier Part": "C23025",
+            "BOM_JLCPCB Part Class": "Basic Part"
+          }
+        ],
+        [
+          "XYC-PT3528AC-IC",
+          14,
+          "SENSOR-SMD_L3.2-W2.8-LS3.5_XYC-PT3528AC-IC",
+          "S1,S2,S3,S4,S5,S6,S7,SB1,SB2,SB3,SB4,SB5,SB6,SB7",
+          {
+            "BOM_Manufacturer Part": "XYC-PT3528AC-IC",
+            "puuid": "f8c91af356534f78b039505845d083ec",
+            "uuid": "88f75753c4064acd926922831dc5819b",
+            "BOM_Supplier": "LCSC",
+            "BOM_Manufacturer": "NEWOPTO(鑫永诚光电)",
+            "BOM_Supplier Part": "C6081269",
+            "BOM_JLCPCB Part Class": "Extended Part"
+          }
+        ],
+        [
+          "L240CTZ0G3MM",
+          7,
+          "LED-TH_BD3.8-P2.54_L240CTZ0G3MM",
+          "U1,U2,U3,U4,U5,U6,U7",
+          {
+            "BOM_Manufacturer Part": "L240CTZ0G3MM",
+            "puuid": "c853f55ee436415e83ca7728b85ecb00",
+            "uuid": "4d71e3d7354b40c5bb9b936ebf03f2e0",
+            "BOM_Supplier": "LCSC",
+            "BOM_Manufacturer": "null",
+            "BOM_Supplier Part": "C9900093286",
+            "BOM_JLCPCB Part Class": "Extended Part"
+          }
+        ]
+      ],
+      "updateTime": 1754250834,
+      "createTime": 1752175053,
+      "histories": [],
+      "created_at": "2025-07-10 22:17:33",
+      "updated_at": "2025-08-03 22:53:54"
+    },
+    {
+      "uuid": "089f35ee7104cc2b1c35f46668ec907a",
+      "title": "PCB_Robot_Led_Stripe_1.25mm",
+      "filename": "PCB_Robot_Led_Stripe_1.25mm.json",
+      "description": "",
+      "docType": "3",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "041cc9180dc046b7bb66bb309da71792": 14,
+        "f8c91af356534f78b039505845d083ec": 14,
+        "2550b1556b6546148b9e97fc95a93d31": 14,
+        "82a6f055934c4a96a127ac64ff31e5d2": 1,
+        "9ba63133985d42cda948c6301d2bf7d5": 1,
+        "398691f1f785460098bbe5ee6590333c": 3,
+        "c853f55ee436415e83ca7728b85ecb00": 7
+      },
+      "BOM": [],
+      "updateTime": 1754254559,
+      "createTime": 1752177155,
+      "histories": [],
+      "created_at": "2025-07-10 22:52:35",
+      "updated_at": "2025-08-03 23:55:59"
+    },
+    {
+      "uuid": "c080bd3d65c09ddc315feb252cda73d7",
+      "title": "PCB_Robot_Led_Stripe copy",
+      "filename": "PCB_Robot_Led_Stripe copy.json",
+      "description": "",
+      "docType": "3",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "398691f1f785460098bbe5ee6590333c": 3,
+        "c853f55ee436415e83ca7728b85ecb00": 7,
+        "cf4892a93f054a31b9feabd59a950ab2": 1,
+        "041cc9180dc046b7bb66bb309da71792": 7,
+        "f8c91af356534f78b039505845d083ec": 7,
+        "2550b1556b6546148b9e97fc95a93d31": 17
+      },
+      "BOM": [],
+      "updateTime": 1754239198,
+      "createTime": 1754239198,
+      "histories": [],
+      "created_at": "2025-08-03 19:39:58",
+      "updated_at": "2025-08-03 19:39:58"
+    },
+    {
+      "uuid": "93d3a48ab1161ce0173525c6126886be",
+      "title": "PCB_Robot_Led_Stripe copy2",
+      "filename": "PCB_Robot_Led_Stripe copy2.json",
+      "description": "",
+      "docType": "3",
+      "master": "",
+      "thumb": "/images/thumb-default.png",
+      "components": {
+        "041cc9180dc046b7bb66bb309da71792": 11,
+        "f8c91af356534f78b039505845d083ec": 11,
+        "398691f1f785460098bbe5ee6590333c": 3,
+        "c853f55ee436415e83ca7728b85ecb00": 7,
+        "cf4892a93f054a31b9feabd59a950ab2": 1,
+        "2550b1556b6546148b9e97fc95a93d31": 17
+      },
+      "BOM": [],
+      "updateTime": 1754239790,
+      "createTime": 1754239790,
+      "histories": [],
+      "created_at": "2025-08-03 19:49:50",
+      "updated_at": "2025-08-03 19:49:50"
+    }
+  ],
+  "sort": [],
+  "title": "Robot_Led_Stripe_1.25mm",
+  "foldername": "Robot_Led_Stripe_1.25mm",
+  "schfilename": "Robot_Led_Stripe_1.25mm.json",
+  "schfilemtime": 1754250834236
+}
