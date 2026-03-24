@@ -160,18 +160,17 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
             print("Next step (no move, no save).")
             return "skip_move"
         if cmd.lower() == "v":
-            if kind == "angles":
-                current = robot.get_current_angles()
-            else:
-                # For coords, save base + accumulated offset instead of reading from robot
-                target = base.copy()
-                for i in range(3):
-                    target[i] = base[i] + offset[i]
-                current = target
-            if current is None:
+            current_coords = robot.get_current_coords()
+            current_angles = robot.get_current_angles()
+            if current_angles is None:
                 print("Could not read current position.")
                 continue
-            set_value(coord_json, key, current)
+            if(kind == "coords"):
+                set_value(coord_json, key, current_coords)
+                set_value(coord_json, key+"angles", current_angles)
+            else:
+                set_value(coord_json, key, current_angles)
+                
             with open(json_path, "w") as f:
                 json.dump(coord_json, f, indent=2)
             print(f"Saved to {json_path}")
