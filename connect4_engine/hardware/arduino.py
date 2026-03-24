@@ -26,9 +26,6 @@ class ArduinoCommunicator(IArduino):
         self._logger = logger
         self._accept_moves = False  # only accept drops when game is active
         self._active_thread = None
-        self._ack_event = threading.Event()
-        self._ack_expected = None  # the ACK string the worker thread is waiting for
-        self._ack_lock = threading.Lock()  # protects _ack_expected
 
     def set_interrupt_callback(self, callback: Callable):
         self.interrupt_callback = callback

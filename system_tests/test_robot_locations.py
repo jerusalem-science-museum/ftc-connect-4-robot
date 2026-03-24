@@ -18,7 +18,7 @@ from time import sleep
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_JSON_PATH = PROJECT_ROOT / "connect4_engine" / "hardware" / "legacy_coords.json"
 
-def get_puck_pickup_sequence(side="R"):
+def get_pickup_all_pucks_sequence(side="red"):
     """Sequence to mark each puck location in the stack, top to bottom.
     Picks up each puck, returns to hover, discards, then moves to next."""
     steps = []
@@ -26,7 +26,7 @@ def get_puck_pickup_sequence(side="R"):
     steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
     steps.append((f"stack-hover-{side}", "coords", ("angle_table", f"stack-hover-{side}"), 50, 0))
     for i in range(21):
-        steps.append((f"stack-{side}-{i}", "coords", ("angle_table", f"stack-{side}-{i}"), 50, 1))
+        steps.append((f"stack-hover-{side}-{i}", "relative-coords", ("angle_table", f"stack-{side}-{i}"), 50, 1))
         steps.append(("pump-on", "pump", None, None, None))
         sleep(0.5)
         steps.append(("pump-off", "pump", None, None, None))
@@ -97,7 +97,7 @@ def set_value(coord_json, key, value):
         coord_json[t][k] = list(value) if isinstance(value, (list, tuple)) else value
 
 
-def run_step(robot, coord_json, step):
+def run_step(robot: RobotCommunicator, coord_json, step):
     name, kind, key, speed, mode = step
     if kind == "pump":
         if name == "pump-on":
@@ -108,6 +108,14 @@ def run_step(robot, coord_json, step):
             robot._pump_off()
         return name, kind, key, True
     value = get_value(coord_json, key)
+    if(kind == "relative-coords"):
+            if(value is not None):
+                print("puck abs location set, using dict value")
+            else:
+                print("no abs loc for puck, interpolating from start & end")
+                clr, puck_num = name.split("-")[-2:]
+                value = robot.get_puck_loc(clr,puck_num)
+                print(f"going to {value}")
     if value is None:
         print(f"  (no saved position for {key[1]} — skipping move)")
         return name, kind, key, False
@@ -274,9 +282,9 @@ def main():
     if (seq == '2'):
         sequence = get_drop_table_sequence()
     if (seq == '3'):
-        sequence = get_puck_pickup_sequence("R")
+        sequence = get_pickup_all_pucks_sequence("R")
     if (seq == '4'):
-        sequence = get_puck_pickup_sequence("L")
+        sequence = get_pickup_all_pucks_sequence("L")
     print(f"Running {len(sequence)} steps. Port={args.port}, JSON={json_path}")
 
     skip_move = False
