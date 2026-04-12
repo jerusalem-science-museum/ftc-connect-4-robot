@@ -138,6 +138,7 @@ class RobotCommunicator(IRobot):
             ] + list(target_coords[3:])
             waypoints.append(waypoint)
         return waypoints
+    # test
 
     def get_current_angles(self):
         """Return current joint angles (for location edit flow)."""
