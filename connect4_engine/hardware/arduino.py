@@ -3,8 +3,7 @@ from typing import Callable, Optional
 from abc import ABC, abstractmethod
 import serial
 import threading
-from connect4_engine.utils.logger import logger
-
+from connect4_engine.utils.logger import logger, timed
 
 class IArduino(ABC):
 
@@ -27,9 +26,6 @@ class ArduinoCommunicator(IArduino):
         self._logger = logger
         self._accept_moves = False  # only accept drops when game is active
         self._active_thread = None
-        self._ack_event = threading.Event()
-        self._ack_expected = None  # the ACK string the worker thread is waiting for
-        self._ack_lock = threading.Lock()  # protects _ack_expected
 
     def set_interrupt_callback(self, callback: Callable):
         self.interrupt_callback = callback
@@ -95,12 +91,15 @@ class ArduinoCommunicator(IArduino):
             self.send_message("RESET")
         self._accept_moves = False
 
+    @timed
     def turn_on_pump(self):
         self.send_message("PUMP ON")
 
+    @timed
     def turn_off_pump(self):
         self.send_message("PUMP OFF")
-
+    
+    @timed
     def release_pump(self):
         self.send_message("PUMP RELEASE")
         # todo: wait for response ack from arduino

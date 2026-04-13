@@ -3,7 +3,8 @@ import sys
 from enum import Enum, auto
 from pathlib import Path
 import yaml
-
+import time
+import functools
 
 class OutputTarget(Enum):
     FILE = auto()
@@ -61,6 +62,15 @@ def setup_logger(name: str = "game") -> logging.Logger:
 
     return logger
 
+
+def timed(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        t0 = time.perf_counter()
+        result = func(*args, **kwargs)
+        logger.debug(f"[TIMER] {func.__name__}: {time.perf_counter() - t0:.3f}s")
+        return result
+    return wrapper
 
 
 # Default logger you can import directly

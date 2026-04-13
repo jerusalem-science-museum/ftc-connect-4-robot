@@ -3,10 +3,11 @@ import threading
 import time
 import json
 
+import numpy as np
 from pymycobot import MyCobot280
 
 from connect4_engine.utils.config import get_config
-from connect4_engine.utils.logger import logger
+from connect4_engine.utils.logger import logger, timed
 from connect4_engine.hardware.arduino import ArduinoCommunicator as Arduino
 
 class IRobot(ABC):
@@ -90,16 +91,54 @@ class RobotCommunicator(IRobot):
             logger.error("exit robot thread")
             raise SystemExit
         
-    # Method to send coords with retry logic    
-    def send_coords(self, coords, speed, mode = 0):
+    # Method to send coords with retry logic   
+    @timed 
+    def send_coords(self, target_coords, speed, mode = 0, step_per_mm = 50):
+        """
+        send coords in a synced fashion. use custom linear func for linear motion as mycobot's linear mode is bad.
+        """
+        logger.debug(f"GOING TO {target_coords}")
         self.check_exit()
-        self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
-        for tries in range(3):
-            self.check_exit()
-            if not self.mc.is_in_position(coords, 1):
-                self.mc.sync_send_coords(coords, speed, mode, self.MOVE_TIMEOUT)
-        if(self.pause_between_moves):
-            input('press <Enter> to proceed.')
+        if(mode == 1):
+            coordlist = self.get_coords_interpolated(target_coords, step_per_mm)
+        else:
+            coordlist = [target_coords]
+        for waypoint in coordlist:
+            self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
+            # we can only hope for the best in terms of calibration. 
+            # mi yiten vekol mishaloteinu yitkablu bivracha.
+            # for tries in range(3):
+            #     self.check_exit()
+            #     is_in_pos = self.mc.is_in_position(waypoint, 1)
+            #     if not is_in_pos:
+            #         logger.debug(f'try no {tries} bc mc in position gave {is_in_pos}')
+            #         self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
+            if(self.pause_between_moves):
+                input('press <Enter> to proceed.')
+
+    def get_coords_interpolated(self, target_coords, step_mm):
+        """get list of interpolated waypoints from current position to target (incl.)
+        Only interpolates x, y, z; rx, ry, rz are taken from target_coords.
+        Computes number of waypoints so each step is ~step_mm apart.
+        replaces the bad linear motion supplied by mycobot."""
+        import math
+        self.check_exit()
+        start = self.get_current_coords()
+        print(f'start: {start[:3]}\nend:   {list(target_coords[:3])}')
+        dist = math.sqrt(sum((target_coords[j] - start[j]) ** 2 for j in range(3)))
+        num_points = max(1, round(dist / step_mm))
+        print(f'dist: {dist}. numpoints: {num_points}')
+        self.check_exit()
+        waypoints = []
+        for i in range(1, num_points + 1):
+            t = i / num_points
+            waypoint = [
+                start[j] + (target_coords[j] - start[j]) * t
+                for j in range(3)
+            ] + list(target_coords[3:])
+            waypoints.append(waypoint)
+        return waypoints
+    # test
 
     def get_current_angles(self):
         """Return current joint angles (for location edit flow)."""
@@ -129,19 +168,19 @@ class RobotCommunicator(IRobot):
 
     # Method to move to the top of the left discs stack
     def hover_over_stack_red(self):
-        self.send_coords(self.angle_table["stack-hover-L"], self.ARM_SPEED_PRECISE, 0)
+        self.send_coords(self.angle_table["stack-hover-red"], self.ARM_SPEED_PRECISE, 0)
     
     # Method to move to in front of left discs stack
     def apro_stack_red(self):
-        self.send_coords(self.angle_table["stack-apro-L"], self.ARM_SPEED,0)
+        self.send_coords(self.angle_table["stack-apro-red"], self.ARM_SPEED,0)
 
     # Method to move to the top of the right disks stack
     def hover_over_stack_yellow(self):
-        self.send_coords(self.angle_table["stack-hover-R"], self.ARM_SPEED_PRECISE, 0)
+        self.send_coords(self.angle_table["stack-hover-ylw"], self.ARM_SPEED_PRECISE, 0)
         
     # Method to move to in front of right discs stack
     def apro_stack_yellow(self):
-        self.send_coords(self.angle_table["stack-apro-R"], self.ARM_SPEED)
+        self.send_coords(self.angle_table["stack-apro-ylw"], self.ARM_SPEED)
         # self.send_coords(self.angle_table["stack-apro-R"], self.ARM_SPEED,0)
 
     def _pump_on(self):
@@ -152,6 +191,7 @@ class RobotCommunicator(IRobot):
         print('pump off')
         self.pump.turn_off_pump()
     
+    @timed
     def pump_release_and_off(self):
         self._pump_open_release_solenoid()
         time.sleep(0.2)
@@ -163,30 +203,45 @@ class RobotCommunicator(IRobot):
         """
         print('pump release')
         self.pump.release_pump()
+    
+    def get_puck_loc(self, clr, counter):
+        result = self.angle_table[f"stack-hover-{clr}-start-1st"]
+        start = np.array(result[:3])
+        end = np.array(self.angle_table[f"stack-hover-{clr}-end-21st"][:3])
+        t = counter / 20
+        coords = start + t * (end - start)
+        # Keep orientation from start (indices 3-5)
+        result = self.angle_table[f"stack-hover-{clr}-start-1st"]
+        result[:3] = coords.tolist()
+        return result
+
+
     # Method to pick up a disk form stakc level n with thickness t
     def get_disc_yellow(self, counter: int,thickness: int):
-        self.temp_target_coords = self.angle_table["stack-hover-R"] 
-        logger.info(f"picking up disk at delta {self.DISK_LEVEL_Y} from hover, plus {counter} * {thickness} = {self.DISK_LEVEL_Y + (counter*thickness)} from hover")
-        self.disc_x_coord=self.temp_target_coords[0] + self.DISK_LEVEL_Y + (counter*thickness)
-        self.temp_target_coords[0]=self.disc_x_coord
-        self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
+        self.target_coords = self.get_puck_loc('ylw',counter)
+        # logger.info(f"picking up disk at {counter} * {thickness} = {counter*thickness} from pickup")
+        # self.disc_x_coord=self.temp_target_coords[0] + (counter*thickness)
+        # self.temp_target_coords[0]=self.disc_x_coord
+        self.send_coords(self.target_coords, self.ARM_SPEED, 1)
         self._pump_on()
         time.sleep(1)
         self._pump_off()
-        self.send_coords(self.angle_table["stack-hover-R"], self.ARM_SPEED,1)  
+        self.send_coords(self.angle_table["stack-hover-ylw"], self.ARM_SPEED,1)  
         #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)
-	    
+	
     # Method to pick up a disk form stack level n with thickness t
     def get_disc_red(self, counter: int,thickness: int):
-        self.temp_target_coords = self.angle_table["stack-hover-L"] 
-        logger.info(f"picking up disk at delta {self.DISK_LEVEL_R} from hover, plus {counter} * {thickness} = {self.DISK_LEVEL_R + (counter*thickness)} from hover")
-        self.disc_x_coord = self.temp_target_coords[0] + self.DISK_LEVEL_R + (counter*thickness)
-        self.temp_target_coords[0]=self.disc_x_coord
-        self.send_coords(self.temp_target_coords, self.ARM_SPEED, 1)
+        self.target_coords = self.get_puck_loc('red',counter)
+        # logger.info(f"picking up disk at {counter} * {thickness} = {counter*thickness} from pickup")
+        # self.disc_x_coord = self.temp_target_coords[0] + (counter*thickness)
+        # self.temp_target_coords[0]=self.disc_x_coord
+        logger.debug(f'current location: {self.mc.get_coords()}')
+        logger.debug(f'next location: {self.target_coords}')
+        self.send_coords(self.target_coords, self.ARM_SPEED, 1)
         self._pump_on()
         time.sleep(1)
         self._pump_off()
-        self.send_coords(self.angle_table["stack-hover-L"], self.ARM_SPEED,1)
+        self.send_coords(self.angle_table["stack-hover-red"], self.ARM_SPEED,1)
         #self.send_coord(Coord.X.value,self.STACK_ENTRY,self.ARM_SPEED_PRECISE)
                     
     # Method to move to the handover window and drop the disk
@@ -247,7 +302,3 @@ class RobotCommunicator(IRobot):
     def reset(self):
         self.observe_posture()
         logger.debug("Robot reset to home position")
-
-if __name__ == "__main__":
-    robot = RobotCommunicator()
-    robot.drop_piece(3, 0)  # Drop a puck in column 3, first puck
