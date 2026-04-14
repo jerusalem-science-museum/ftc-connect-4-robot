@@ -52,7 +52,7 @@ class RobotCommunicator(IRobot):
             with open(json_path, "r") as f:
                 self.coord_json = json.load(f)
         else:
-            self.coord_json = json.load(open("connect4_engine/hardware/legacy_coords.json"))
+            self.coord_json = json.load(open("connect4_engine/hardware/angles.json"))
         self.ARM_SPEED = 100
         self.ARM_SPEED_PRECISE = 50
         self.MOVE_TIMEOUT = 1
@@ -70,7 +70,7 @@ class RobotCommunicator(IRobot):
         # Define drop table for different positions
         self.drop_table = self.coord_json["drop_table"]
     
-    # Method to send angles with retry logic
+    
     def send_angles(self, angle, speed):
         self.check_exit()
         self.mc.sync_send_angles(angle, speed, self.MOVE_TIMEOUT)
@@ -80,6 +80,22 @@ class RobotCommunicator(IRobot):
                 self.mc.sync_send_angles(angle, speed, self.MOVE_TIMEOUT)
         if(self.pause_between_moves):
             input('press <Enter> to proceed.')
+
+    """
+    go through a sequence of angles (some saved linear motion sequence).
+    """
+    def send_angle_sequence(self, angles, speed, direction='forwards'):
+        if(direction == "backwards"):
+            angles = angles[::-1]
+        for step in angles:
+            self.mc.sync_send_angles(step, speed, self.MOVE_TIMEOUT)
+            for tries in range(3):
+                self.check_exit()
+                if not self.mc.is_in_position(step, 0):
+                    self.mc.sync_send_angles(step, speed, self.MOVE_TIMEOUT)
+            if(self.pause_between_moves):
+                input('press <Enter> to proceed.')
+    
 
     # check if you should ky
     def check_exit(self):
@@ -115,6 +131,19 @@ class RobotCommunicator(IRobot):
             #         self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
             if(self.pause_between_moves):
                 input('press <Enter> to proceed.')
+
+    """
+    go through a sequence of coords (some saved linear motion sequence).
+    """
+    def send_coords_sequence(self, target_coords, speed, direction='forwards'):
+        if(direction == "backwards"):
+            target_coords = target_coords[::-1]
+        for step in target_coords:
+            self.mc.sync_send_coords(step, speed, self.MOVE_TIMEOUT)
+            if(self.pause_between_moves):
+                input('press <Enter> to proceed.')
+    
+
 
     def get_coords_interpolated(self, target_coords, step_mm):
         """get list of interpolated waypoints from current position to target (incl.)

@@ -16,8 +16,8 @@ from connect4_engine.utils.config import resolve_port
 from time import sleep
 # Project root (parent of system_tests)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_JSON_PATH = PROJECT_ROOT / "connect4_engine" / "hardware" / "legacy_coords.json"
-
+DEFAULT_JSON_PATH = PROJECT_ROOT / "connect4_engine" / "hardware" / "coords.json"
+ANGLES_JSON_PATH = PROJECT_ROOT / "connect4_engine" / "hardware" / "angles.json"
 def get_pickup_all_pucks_sequence(side="red"):
     """Sequence to mark each puck location in the stack, top to bottom.
     Picks up each puck, returns to hover, discards, then moves to next."""
@@ -126,8 +126,11 @@ def run_step(robot: RobotCommunicator, coord_json, step):
     return name, kind, key, True
 
 
-def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_index, nudge_mm=3, moved=True):
-    """Keyboard loop: nudge X/Y/Z, release, lock, save, next."""
+def edit_mode_loop(robot: RobotCommunicator, coord_json, coord_angles_json, step, json_path, step_index, nudge_mm=3, moved=True):
+    """
+    Keyboard loop: nudge X/Y/Z, release, lock, save, next.
+    save always saves the angles in coord_angles_json as well as whatever was determined in coord_json.
+    """
     name, kind, key = step
     print(f"\n[Edit mode] Step: {name} (index {step_index})")
     print("  1/u/+X  2/d/-X  3/r/+Y  4/l/-Y  5/i/+Z  6/o/-Z  |  x/y/z[+-]<mm>[l]  |  'l'=linear  g=get pos  R=release  L=lock  v=save  n=next  N=next (no move)")
@@ -168,8 +171,10 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
             if(kind == "coords"):
                 set_value(coord_json, key, current_coords)
                 set_value(coord_json, key+"angles", current_angles)
+                set_value(coord_angles_json, key, current_angles)
             else:
                 set_value(coord_json, key, current_angles)
+                set_value(coord_angles_json, key, current_angles)
                 
             with open(json_path, "w") as f:
                 json.dump(coord_json, f, indent=2)
@@ -239,10 +244,14 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, step, json_path, step_i
             for i in range(3):
                 target[i] = base[i] + offset[i]
 
-            if move_mode == 1:
-                robot.send_coords_interpolated(target, 50)
-            else:
-                robot.send_coords(target, 50, 0)
+            # if move_mode == 1:
+            #     coords = robot.get_coords_interpolated(target, 50)
+            #     for coord in coords:
+            #         robot.send_coords(coord, 50, 0)
+            #         current_angle = robot.get_current_angles()
+
+            # else:
+            #     robot.send_coords(target, 50, 0)
             mode_label = " [interpolated]" if move_mode == 1 else ""
             print(f"Nudged{mode_label}. Offset: X={offset[0]:+.1f} Y={offset[1]:+.1f} Z={offset[2]:+.1f} | Target: {target[:3]}")
             continue
@@ -253,7 +262,7 @@ def main():
     parser = argparse.ArgumentParser(description="Robot location test with edit mode after each step.")
     robot_port = resolve_port("robot")
     parser.add_argument("--port", default=robot_port, help="Robot COM port")
-    parser.add_argument("--json-path", type=Path, default=None, help="Locations JSON (default: connect4_engine/hardware/legacy_coords.json)")
+    parser.add_argument("--json-path", type=Path, default=None, help="Locations JSON (default: connect4_engine/hardware/coords.json)")
     parser.add_argument("--no-edit", action="store_true", help="Run sequence without entering edit mode")
     parser.add_argument("--nudge-mm", type=float, default=3, help="Nudge step in mm (default 3)")
     args = parser.parse_args()
@@ -265,7 +274,8 @@ def main():
 
     with open(json_path, "r") as f:
         coord_json = json.load(f)
-
+    with open(ANGLES_JSON_PATH, 'r') as f:
+        coord_angles_json = json.load(f)
     seq = input("which sequence? \n1. get puck sequence\n2. drop positions\n3. puck pickup (R)\n4. puck pickup (L)\n")
     needs_pump = seq in ('3', '4')
     if needs_pump:
@@ -297,7 +307,7 @@ def main():
         else:
             *_, moved = run_step(robot, coord_json, step)
         if not args.no_edit and kind != "pump":
-            result = edit_mode_loop(robot, coord_json, (name, kind, key), json_path, i, moved=moved)
+            result = edit_mode_loop(robot, coord_json, coord_angles_json, (name, kind, key), json_path, i, moved=moved)
             if result == "skip_move":
                 skip_move = True
 
