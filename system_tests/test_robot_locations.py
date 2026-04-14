@@ -115,7 +115,7 @@ def run_step(robot: RobotCommunicator, coord_json, step, angles_json):
             else:
                 print("no abs loc for puck, interpolating from start & end")
                 clr, puck_num = name.split("-")[-2:]
-                value = robot.get_puck_loc(clr,puck_num)
+                value = robot.get_puck_loc(clr,int(puck_num))
                 print(f"going to {value}")
     if value is None:
         print(f"  (no saved position for {key[1]} — skipping move)")
@@ -177,7 +177,7 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, angles_json, step, json
                 set_value(coord_json, key+"angles", current_angles)
                 set_value(angles_json, key, current_angles)
             elif kind == "relative-coords":
-                # in this case, we can only calc the interpolated cartesian locations. run_step weirdly will update the location on the way up.
+                # in this case, we can only calc the interpolated cartesian locations, so we need to move manually and cap angles. 
                 lerped_coords = robot.get_coords_interpolated(base, 50) # going from puck to top. later we'll swap direction.
                 lerped_angles = []
                 # figure out angles and go back to previous step.
@@ -296,7 +296,7 @@ def main():
         coord_json = json.load(f)
     with open(ANGLES_JSON_PATH, 'r') as f:
         angles_json = json.load(f)
-    seq = input("which sequence? \n1. get puck sequence\n2. drop positions\n3. puck pickup (R)\n4. puck pickup (L)\n")
+    seq = input("which sequence? \n1. get puck sequence\n2. drop positions\n3. puck pickup (red)\n4. puck pickup (ylw)\n")
     needs_pump = seq in ('3', '4')
     if needs_pump:
         ard_port = resolve_port("arduino")
@@ -311,9 +311,9 @@ def main():
     if (seq == '2'):
         sequence = get_drop_table_sequence()
     if (seq == '3'):
-        sequence = get_pickup_all_pucks_sequence("R")
+        sequence = get_pickup_all_pucks_sequence("red")
     if (seq == '4'):
-        sequence = get_pickup_all_pucks_sequence("L")
+        sequence = get_pickup_all_pucks_sequence("ylw")
     print(f"Running {len(sequence)} steps. Port={args.port}, JSON={json_path}")
 
     skip_move = False
