@@ -14,7 +14,7 @@ void setup() {
   close_solenoids();
   delay(1000);
   Serial.println("LOG set up");
-  Serial.println("START");
+  // Serial.println("START");
 }
 
 
