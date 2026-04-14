@@ -113,6 +113,7 @@ def run_step(robot: RobotCommunicator, coord_json, step, angles_json):
             if(value is not None):
                 print("puck abs location set, using dict value")
             else:
+                # decision moment - interp or just save everything once? recalibration will be a pain, as opposed to start & end + interp...
                 print("no abs loc for puck, interpolating from start & end")
                 clr, puck_num = name.split("-")[-2:]
                 value = robot.get_puck_loc(clr,int(puck_num))
