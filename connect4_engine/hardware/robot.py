@@ -70,8 +70,13 @@ class RobotCommunicator(IRobot):
         # Define drop table for different positions
         self.drop_table = self.coord_json["drop_table"]
     
-    
-    def send_angles(self, angle, speed):
+    def send_angles(self, angles, speed, direction='forwards'):
+        if any(isinstance(item, list) for item in angles):
+            self.send_coords_sequence(angles, speed, direction)
+        else:
+            self.send_coord(angles, speed)
+
+    def send_angle(self, angle, speed):
         self.check_exit()
         self.mc.sync_send_angles(angle, speed, self.MOVE_TIMEOUT)
         for tries in range(3):
@@ -84,7 +89,7 @@ class RobotCommunicator(IRobot):
     """
     go through a sequence of angles (some saved linear motion sequence).
     """
-    def send_angle_sequence(self, angles, speed, direction='forwards'):
+    def send_angle_sequence(self, angles, speed, direction):
         if(direction == "backwards"):
             angles = angles[::-1]
         for step in angles:
@@ -108,8 +113,14 @@ class RobotCommunicator(IRobot):
             raise SystemExit
         
     # Method to send coords with retry logic   
-    @timed 
-    def send_coords(self, target_coords, speed, mode = 0, step_per_mm = 50):
+
+    def send_coords(self, target_coords, speed, mode = 0, step_per_mm = 50, direction='forward'):
+        if any(isinstance(item, list) for item in target_coords):
+            self.send_coords_sequence(target_coords, speed, direction)
+        else:
+            self.send_coord(target_coords, speed, mode, step_per_mm)
+
+    def send_coord(self, target_coords, speed, mode = 0, step_per_mm = 50):
         """
         send coords in a synced fashion. use custom linear func for linear motion as mycobot's linear mode is bad.
         """
@@ -131,7 +142,6 @@ class RobotCommunicator(IRobot):
             #         self.mc.sync_send_coords(waypoint, speed, 0, self.MOVE_TIMEOUT)
             if(self.pause_between_moves):
                 input('press <Enter> to proceed.')
-
     """
     go through a sequence of coords (some saved linear motion sequence).
     """
@@ -139,14 +149,14 @@ class RobotCommunicator(IRobot):
         if(direction == "backwards"):
             target_coords = target_coords[::-1]
         for step in target_coords:
-            self.mc.sync_send_coords(step, speed, self.MOVE_TIMEOUT)
+            self.mc.sync_send_coords(step, speed, 0, self.MOVE_TIMEOUT)
             if(self.pause_between_moves):
                 input('press <Enter> to proceed.')
     
 
 
     def get_coords_interpolated(self, target_coords, step_mm):
-        """get list of interpolated waypoints from current position to target (incl.)
+        """get list of interpolated waypoints from current position to target (incl. start and end)
         Only interpolates x, y, z; rx, ry, rz are taken from target_coords.
         Computes number of waypoints so each step is ~step_mm apart.
         replaces the bad linear motion supplied by mycobot."""
@@ -159,7 +169,7 @@ class RobotCommunicator(IRobot):
         print(f'dist: {dist}. numpoints: {num_points}')
         self.check_exit()
         waypoints = []
-        for i in range(1, num_points + 1):
+        for i in range(num_points + 1):
             t = i / num_points
             waypoint = [
                 start[j] + (target_coords[j] - start[j]) * t
