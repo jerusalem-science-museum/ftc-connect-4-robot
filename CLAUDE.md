@@ -80,4 +80,4 @@ PC (Python) ──serial──> MyCobot 280 arm (via pymycobot)
 - COM ports for robot and Arduino (separate win/linux keys)
 - `pause_between_moves` — if `true`, robot pauses and waits for Enter after each arm movement (useful for calibration)
 
-Robot arm positions are stored in `connect4_engine/hardware/legacy_coords.json` (default) or a custom JSON passed via `--json-path`. The JSON contains `angle_table`, `chess_table`, and `drop_table` keyed by position name.
+Robot arm positions are stored in `connect4_engine/hardware/coords.json` (default) or a custom JSON passed via `--json-path`. The JSON contains `angle_table`, `chess_table`, and `drop_table` keyed by position name.
