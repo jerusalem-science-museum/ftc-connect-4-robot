@@ -103,6 +103,7 @@ def run_step(robot: RobotCommunicator, coord_json, step, angles_json):
     if kind == "pump":
         if name == "pump-on":
             robot._pump_on()
+            sleep(1)
         elif name == "pump-release":
             robot.pump_release_and_off()
         elif name == "pump-off":
@@ -112,12 +113,11 @@ def run_step(robot: RobotCommunicator, coord_json, step, angles_json):
     if(kind == "relative-coords"):
             if(value is not None):
                 print("puck abs location set, using dict value")
-            else:
+             #else:
                 # decision moment - interp or just save everything once? recalibration will be a pain, as opposed to start & end + interp...
-                print("no abs loc for puck, interpolating from start & end")
-                clr, puck_num = name.split("-")[-2:]
-                value = robot.get_puck_loc(clr,int(puck_num))
-                print(f"going to {value}")
+                #print("no abs loc for puck, interpolating from start & end") clr, puck_num = name.split("-")[-2:]
+                #value = robot.get_puck_loc(clr,int(puck_num))
+                #print(f"going to {value}")
     if value is None:
         print(f"  (no saved position for {key[1]} — skipping move)")
         return name, kind, key, False
@@ -175,7 +175,6 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, angles_json, step, json
                 continue
             if(kind == "coords"):
                 set_value(coord_json, key, current_coords)
-                set_value(coord_json, key+"angles", current_angles)
                 set_value(angles_json, key, current_angles)
             elif kind == "relative-coords":
                 # in this case, we can only calc the interpolated cartesian locations, so we need to move manually and cap angles. 
@@ -199,6 +198,9 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, angles_json, step, json
                 
             with open(json_path, "w") as f:
                 json.dump(coord_json, f, indent=2)
+            with open(ANGLES_JSON_PATH, "w") as f:
+                json.dump(angles_json, f, indent=2)
+
             print(f"Saved to {json_path}")
             return
         if cmd.lower() == "g":
@@ -230,7 +232,7 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, angles_json, step, json
         axis_match = re.match(r'^([xyz])([+-]?)(\d*\.?\d*)(l?)$', raw, re.IGNORECASE)
         spatial_nudge = re.match(r'^([lrudio])(\d*\.?\d*)(l?)$', raw.lower())
         if axis_match or spatial_nudge or cmd in "123456":
-            if kind != "coords":
+            if not 'coords' in kind:
                 print("Nudge only for coord steps. Use release/lock for angle steps.")
                 continue
 
@@ -265,14 +267,14 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, angles_json, step, json
             for i in range(3):
                 target[i] = base[i] + offset[i]
 
-            # if move_mode == 1:
-            #     coords = robot.get_coords_interpolated(target, 50)
-            #     for coord in coords:
-            #         robot.send_coords(coord, 50, 0)
-            #         current_angle = robot.get_current_angles()
+            if move_mode == 1:
+                coords = robot.get_coords_interpolated(target, 50)
+                for coord in coords:
+                    robot.send_coords(coord, 50, 0)
+                    current_angle = robot.get_current_angles()
 
-            # else:
-            #     robot.send_coords(target, 50, 0)
+            else:
+                robot.send_coords(target, 50, 0)
             mode_label = " [interpolated]" if move_mode == 1 else ""
             print(f"Nudged{mode_label}. Offset: X={offset[0]:+.1f} Y={offset[1]:+.1f} Z={offset[2]:+.1f} | Target: {target[:3]}")
             continue
