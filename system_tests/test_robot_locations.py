@@ -27,9 +27,9 @@ def get_pickup_all_pucks_sequence(side="red"):
     steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
     steps.append((f"stack-hover-{side}", "coords", ("angle_table", f"stack-hover-{side}"), 50, 0))
     for i in range(21):
-        steps.append((f"stack-hover-{side}-{i}", "relative-coords", ("angle_table", f"stack-{side}-{i}"), 50, 1))
+        steps.append((f"stack-hover-{side}-{i}", "forward-coords", ("angle_table", f"stack-{side}-{i}"), 50, 1))
         steps.append(("pump-on", "pump", None, None, None))
-        sleep(0.5)
+        sleep(1)
         steps.append(("pump-off", "pump", None, None, None))
         steps.append((f"stack-hover-{side}-{i}", "reverse-coords", ("angle_table", f"stack-{side}-{i}"), 50, 1))
         steps.append((f"discard-puck-{side}", "coords", ("angle_table", f"discard-puck-{side}"), 50, 0))
@@ -55,30 +55,13 @@ def get_drop_table_sequence():
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
     for n in range(7):
         steps.append((f"chess_{n}", "coords", ("chess_table", n), 100, 0))
-        steps.append((f"drop_{n}", "relative-coords", ("drop_table", n), 100, 1))
+        steps.append((f"drop_{n}", "forward-coords", ("drop_table", n), 100, 1))
         steps.append((f"chess_{n}_back", "reverse-coords", ("drop_table", n), 100, 1))
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
     steps.append(("handover-window", "coords", ("angle_table", "handover-window"), 100, 0))
     steps.append(("in-window", "coords", ("angle_table", "in-window"), 100, 1))
     steps.append(("handover-window_back", "coords", ("angle_table", "handover-window"), 100, 0))
     return steps
-
-def get_puck_sequence():
-    """Build the safe sequence of steps (name, kind, key, speed, mode)."""
-    steps = []
-    steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
-    steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
-    steps.append(("stack-hover-red", "coords", ("angle_table", "stack-hover-red"), 50, 0))
-    steps.append(("stack-hover-red-pickup", "coords", ("angle_table", "stack-hover-red-pickup"), 50, 1))
-    steps.append(("stack-hover-red", "coords", ("angle_table", "stack-hover-red"), 50, 1))
-    steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
-    steps.append(("stack-hover-R", "coords", ("angle_table", "stack-hover-R"), 50, 0))
-    steps.append(("stack-hover-R-pickup", "coords", ("angle_table", "stack-hover-R-pickup"), 50, 0))
-    steps.append(("stack-hover-R", "coords", ("angle_table", "stack-hover-R"), 50, 0))
-    steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
-    steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
-    return steps
-
 
 def get_value(coord_json, key):
     t, k = key
@@ -98,7 +81,7 @@ def set_value(coord_json, key, value):
         coord_json[t][k] = list(value) if isinstance(value, (list, tuple)) else value
 
 
-def run_step(robot: RobotCommunicator, coord_json, step, angles_json):
+def run_step(robot: RobotCommunicator, coord_json, step):
     name, kind, key, speed, mode = step
     if kind == "pump":
         if name == "pump-on":
@@ -110,7 +93,7 @@ def run_step(robot: RobotCommunicator, coord_json, step, angles_json):
             robot._pump_off()
         return name, kind, key, True
     value = get_value(coord_json, key)
-    if(kind == "relative-coords"):
+    if(kind == "forward-coords"):
             if(value is not None):
                 print("puck abs location set, using dict value")
              #else:
@@ -126,8 +109,10 @@ def run_step(robot: RobotCommunicator, coord_json, step, angles_json):
 
     if kind == "angles":
         robot.send_angles(value, speed)
-    else:
+    elif kind == 'coords':
         robot.send_coords(value, speed, mode)
+    else:
+        print(f"no movement set for type {kind}")
     return name, kind, key, True
 
 
@@ -141,10 +126,10 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, angles_json, step, json
     print("  1/u/+X  2/d/-X  3/r/+Y  4/l/-Y  5/i/+Z  6/o/-Z  |  x/y/z[+-]<mm>[l]  |  'l'=linear  g=get pos  R=release  L=lock  v=save  n=next  N=next (no move)")
 
     # Initialize base coordinate from JSON (or current robot pos if we skipped the move)
-    if kind == "coords" or kind == "relative-coords":
+    if kind == "coords" or kind == "forward-coords":
         saved = get_value(coord_json, key)
         base = list(saved) if (moved and saved is not None) else list(robot.get_current_coords())
-        offset = [0, 0, 0]  # Accumulated offset for X, Y, Z only
+        offset = [0, 0, 0] # Accumulated offset for X, Y, Z only
     else:
         base = None
         offset = None
@@ -176,7 +161,7 @@ def edit_mode_loop(robot: RobotCommunicator, coord_json, angles_json, step, json
             if(kind == "coords"):
                 set_value(coord_json, key, current_coords)
                 set_value(angles_json, key, current_angles)
-            elif kind == "relative-coords":
+            elif kind == "forward-coords":
                 # in this case, we can only calc the interpolated cartesian locations, so we need to move manually and cap angles. 
                 lerped_coords = robot.get_coords_interpolated(base, 50) # going from puck to top. later we'll swap direction.
                 lerped_angles = []
@@ -299,7 +284,7 @@ def main():
         coord_json = json.load(f)
     with open(ANGLES_JSON_PATH, 'r') as f:
         angles_json = json.load(f)
-    seq = input("which sequence? \n1. get puck sequence\n2. drop positions\n3. puck pickup (red)\n4. puck pickup (ylw)\n")
+    seq = input("which sequence? \n1. drop positions\n2. puck pickup (red)\n3. puck pickup (ylw)\n")
     needs_pump = seq in ('3', '4')
     if needs_pump:
         ard_port = resolve_port("arduino")
@@ -310,12 +295,10 @@ def main():
         robot = RobotCommunicator(com_port=args.port, pump=pump, coord_json=coord_json)
 
     if (seq == '1'):
-        sequence = get_puck_sequence()
-    if (seq == '2'):
         sequence = get_drop_table_sequence()
-    if (seq == '3'):
+    if (seq == '2'):
         sequence = get_pickup_all_pucks_sequence("red")
-    if (seq == '4'):
+    if (seq == '3'):
         sequence = get_pickup_all_pucks_sequence("ylw")
     print(f"Running {len(sequence)} steps. Port={args.port}, JSON={json_path}")
 
@@ -328,7 +311,7 @@ def main():
             moved = False
             skip_move = False
         else:
-            *_, moved = run_step(robot, coord_json, step, angles_json)
+            *_, moved = run_step(robot, coord_json, step)
         if not args.no_edit and kind != "pump":
             result = edit_mode_loop(robot, coord_json, angles_json, (name, kind, key), json_path, i, moved=moved)
             if result == "skip_move":
