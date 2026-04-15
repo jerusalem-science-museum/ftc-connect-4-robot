@@ -165,7 +165,7 @@ class RobotCommunicator(IRobot):
         start = self.get_current_coords()
         print(f'start: {start[:3]}\nend:   {list(target_coords[:3])}')
         dist = math.sqrt(sum((target_coords[j] - start[j]) ** 2 for j in range(3)))
-        num_points = max(1, round(dist / step_mm))
+        num_points = max(1, round(dist / step_mm) + 1) # bc we're including the fst & lst so need + 1
         print(f'dist: {dist}. numpoints: {num_points}')
         self.check_exit()
         waypoints = []
@@ -244,6 +244,7 @@ class RobotCommunicator(IRobot):
         self.pump.release_pump()
     
     def get_puck_loc(self, clr, counter):
+        # we have the interp of 
         result = self.angle_table[f"stack-hover-{clr}-start-1st"]
         start = np.array(result[:3])
         end = np.array(self.angle_table[f"stack-hover-{clr}-end-21st"][:3])
