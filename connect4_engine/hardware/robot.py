@@ -72,7 +72,7 @@ class RobotCommunicator(IRobot):
     
     def send_angles(self, angles, speed, direction='forwards'):
         if any(isinstance(item, list) for item in angles):
-            self.send_angles_sequence(angles, speed, direction)
+            self.send_angle_sequence(angles, speed, direction)
         else:
             self.send_angle(angles, speed)
 

@@ -22,6 +22,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_JSON_PATH = PROJECT_ROOT / "connect4_engine" / "hardware" / "coords.json"
 ANGLES_JSON_PATH = PROJECT_ROOT / "connect4_engine" / "hardware" / "angles.json"
 
+
 def get_pickup_all_pucks_sequence(side="red"):
     """Sequence to mark each puck location in the stack, top to bottom.
     Picks up each puck, returns to hover, discards, then moves to next."""
@@ -83,28 +84,32 @@ def get_puck_seq(counter, start_seq, end_seq):
     end_seq_np = np.array(end_seq)
     start = start_seq_np[-1]
     end = end_seq_np[-1]
-    
+
     t = counter / 20
-    coords = np.hstack((start[:3] + t * (end[:3] - start[:3]),start[3:])) # orientation of head should still be ~90,0,90
-    puck_seq = np.vstack((end_seq_np[end_seq_np[:,0] < coords[0]], coords)) # take the seq from the 20th puck, and end at relative location for puck n.
+    coords = np.hstack(
+        (start[:3] + t * (end[:3] - start[:3]), start[3:])
+    )  # orientation of head should still be ~90,0,90
+    puck_seq = np.vstack(
+        (end_seq_np[end_seq_np[:, 0] < coords[0]], coords)
+    )  # take the seq from the 20th puck, and end at relative location for puck n.
     # optional - maybe skip the last coord in the seq of the 20th puck bc it's probably very close to the nth puck position anyway...
     return puck_seq.tolist()
 
 
-def interp_from_first_and_last(robot: RobotCommunicator, coord_json, angles_json, clr="red"):
+def interp_from_first_and_last(
+    robot: RobotCommunicator, coord_json, angles_json, clr="red"
+):
     """after acquiring the first & last position of a stack,
     interpolate backwards (so you can add a puck at a time to make sure)
     and update the coords & angles accordingly, reusing the 21st's interpolated values
     """
     fst = coord_json["angle_table"][f"stack-{clr}-0"]
     lst = coord_json["angle_table"][f"stack-{clr}-20"]
-    # top = coord_json['angle_table'][f"stack-hover-{clr}"]
-    # TODO: go to top of stack
+    robot.send_coords(coord_json["angle_table"]["prepare"], 50)
     for i in range(21):
-        input(f'please put in puck no {20-i} thank you <3')
+        input(f"please put in puck no {20-i} thank you <3")
         angles = []
-        puck_seq_i = get_puck_seq(20-i, fst, lst)
-        # TODO: 
+        puck_seq_i = get_puck_seq(20 - i, fst, lst)
         for coord in puck_seq_i:
             robot.send_coords(coord, 50)
             angles.append(robot.get_current_angles())
@@ -115,25 +120,16 @@ def interp_from_first_and_last(robot: RobotCommunicator, coord_json, angles_json
         robot.send_angles(angles, 50)
         robot.pump_release_and_off()
         robot.send_angles(angles[::-1], 50)
-        set_value(angles_json, ('angle_table',f'stack-{clr}-{i}'), angles)
+        set_value(angles_json, ("angle_table", f"stack-{clr}-{i}"), angles)
         with open(ANGLES_JSON_PATH, "w") as f:
             json.dump(angles_json, f, indent=2)
-        # go down to puck using sequence 
-        # & saving in angles as well. 
-        # pick up puck
-        # go up using angles
-        # go back w angles
-        # drop puck 
-        # go up again
-        # save resulting values in corresponding jsons
-        # put in next puck (wait for enter)
-        # repeat. 
         # this way, if we decide to change delta between steps, we only need to recalc 0th and 20th + redo this semi-automatic function.
-        
+
 
 def test_infinite_drop():
     """
     the big one. just try to play infinite times, reset and everything. simulate the whole game.
+    TODO: implement
     """
     steps = []
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
@@ -451,6 +447,16 @@ def main():
         sequence = get_pickup_all_pucks_sequence("red")
     if seq == "3":
         sequence = get_pickup_all_pucks_sequence("ylw")
+    if "4" in seq:
+        if "red" in seq:
+            clr = 'red'
+        elif 'ylw' in seq:
+            clr = 'ylw'
+        else:
+            print('clr not defined')
+            return
+        interp_from_first_and_last(robot, coord_json, angles_json,clr)
+        return
     print(f"Running {len(sequence)} steps. Port={args.port}, JSON={json_path}")
 
     skip_move = False
