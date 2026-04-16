@@ -9,6 +9,7 @@ import json
 import re
 import sys
 from pathlib import Path
+import numpy as np
 import serial
 from connect4_engine.hardware.arduino import ArduinoCommunicator
 from connect4_engine.hardware.mock import ArduinoPumpNoOp
@@ -78,43 +79,45 @@ def get_puck_seq(counter, start_seq, end_seq):
     given the counter, assuming x position is what differnetiates between linear movements,
     return sequence from fst to counter puck using lst's coords
     """
-    start = start_seq[-1]
-    end = end_seq[-1]
+    start_seq_np = np.array(start_seq)
+    end_seq_np = np.array(end_seq)
+    start = start_seq_np[-1]
+    end = end_seq_np[-1]
+    
     t = counter / 20
-    coords = start + t * (end[:3] - start[:3])
-    # TODO: 
-    # find the resulting list
-    # take till there
-    return result
+    coords = np.hstack((start[:3] + t * (end[:3] - start[:3]),start[3:])) # orientation of head should still be ~90,0,90
+    puck_seq = np.vstack((end_seq_np[end_seq_np[:,0] < coords[0]], coords)) # take the seq from the 20th puck, and end at relative location for puck n.
+    # optional - maybe skip the last coord in the seq of the 20th puck bc it's probably very close to the nth puck position anyway...
+    return puck_seq.tolist()
 
 
-# def get_puck_loc(self, clr, counter):
-#     # we have the interp of
-#     result = self.angle_table[f"stack-hover-{clr}-start-1st"]
-#     start = np.array(result[:3])
-#     end = np.array(self.angle_table[f"stack-hover-{clr}-end-21st"][:3])
-#     t = counter / 20
-#     coords = start + t * (end - start)
-#     # Keep orientation from start (indices 3-5)
-#     result = self.angle_table[f"stack-hover-{clr}-start-1st"]
-#     result[:3] = coords.tolist()
-#     return result
-
-
-def interp_from_first_and_last(coord_json, angles_json, clr="red"):
+def interp_from_first_and_last(robot: RobotCommunicator, coord_json, angles_json, clr="red"):
     """after acquiring the first & last position of a stack,
     interpolate backwards (so you can add a puck at a time to make sure)
     and update the coords & angles accordingly, reusing the 21st's interpolated values
     """
     fst = coord_json["angle_table"][f"stack-{clr}-0"]
     lst = coord_json["angle_table"][f"stack-{clr}-20"]
-    coords = []
-
-    steps = []
+    # top = coord_json['angle_table'][f"stack-hover-{clr}"]
     # TODO: go to top of stack
     for i in range(21):
-        coords_i = get_puck_seq(20-i, fst, lst)
+        input(f'please put in puck no {20-i} thank you <3')
+        angles = []
+        puck_seq_i = get_puck_seq(20-i, fst, lst)
         # TODO: 
+        for coord in puck_seq_i:
+            robot.send_coords(coord, 50)
+            angles.append(robot.get_current_angles())
+        robot._pump_on()
+        sleep(1)
+        robot._pump_off()
+        robot.send_angles(angles[::-1], 50)
+        robot.send_angles(angles, 50)
+        robot.pump_release_and_off()
+        robot.send_angles(angles[::-1], 50)
+        set_value(angles_json, ('angle_table',f'stack-{clr}-{i}'), angles)
+        with open(ANGLES_JSON_PATH, "w") as f:
+            json.dump(angles_json, f, indent=2)
         # go down to puck using sequence 
         # & saving in angles as well. 
         # pick up puck
@@ -127,48 +130,6 @@ def interp_from_first_and_last(coord_json, angles_json, clr="red"):
         # repeat. 
         # this way, if we decide to change delta between steps, we only need to recalc 0th and 20th + redo this semi-automatic function.
         
-        steps.append(
-            (
-                f"stack-hover-{side}-{i}",
-                "forward-coords",
-                ("angle_table", f"stack-{side}-{i}"),
-                50,
-                1,
-            )
-        )
-
-        steps.append(("pump-on", "pump", None, None, None))
-        steps.append(("pump-off", "pump", None, None, None))
-        steps.append(
-            (
-                f"stack-hover-{side}-{i}",
-                "reverse-coords",
-                ("angle_table", f"stack-{side}-{i}"),
-                50,
-                1,
-            )
-        )
-        steps.append(
-            (
-                f"discard-puck-{side}",
-                "coords",
-                ("angle_table", f"discard-puck-{side}"),
-                50,
-                0,
-            )
-        )
-        steps.append(("pump-release", "pump", None, None, None))
-        steps.append(
-            (
-                f"stack-hover-{side}",
-                "coords",
-                ("angle_table", f"stack-hover-{side}"),
-                50,
-                0,
-            )
-        )
-    return steps
-
 
 def test_infinite_drop():
     """
