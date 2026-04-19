@@ -23,7 +23,7 @@ DEFAULT_JSON_PATH = PROJECT_ROOT / "connect4_engine" / "hardware" / "coords.json
 ANGLES_JSON_PATH = PROJECT_ROOT / "connect4_engine" / "hardware" / "angles.json"
 
 
-def get_pickup_all_pucks_sequence(side="red"):
+def get_pickup_fst_lst_pucks_sequence(side="red"):
     """Sequence to mark each puck location in the stack, top to bottom.
     Picks up each puck, returns to hover, discards, then moves to next."""
     steps = []
@@ -32,7 +32,7 @@ def get_pickup_all_pucks_sequence(side="red"):
     steps.append(
         (f"stack-hover-{side}", "coords", ("angle_table", f"stack-hover-{side}"), 50, 0)
     )
-    for i in range(21):
+    for i in [0, 20]:
         steps.append(
             (
                 f"stack-hover-{side}-{i}",
@@ -75,13 +75,14 @@ def get_pickup_all_pucks_sequence(side="red"):
     return steps
 
 
-def get_puck_seq(counter, start_seq, end_seq):
+def get_puck_seq(counter, start_seq, end_seq, end_seq_angles):
     """
     given the counter, assuming x position is what differnetiates between linear movements,
     return sequence from fst to counter puck using lst's coords
     """
     start_seq_np = np.array(start_seq)
     end_seq_np = np.array(end_seq)
+    end_seq_angles_np = np.array(end_seq_angles)
     start = start_seq_np[-1]
     end = end_seq_np[-1]
 
@@ -90,10 +91,25 @@ def get_puck_seq(counter, start_seq, end_seq):
         (start[:3] + t * (end[:3] - start[:3]), start[3:])
     )  # orientation of head should still be ~90,0,90
     puck_seq = np.vstack(
-        (end_seq_np[end_seq_np[:, 0] < coords[0]], coords)
+        (end_seq_angles_np[end_seq_np[:, 0] < coords[0]], coords)
     )  # take the seq from the 20th puck, and end at relative location for puck n.
+    # we only need the angles for the last pos, the rest we can reuse the stable angles.
     # optional - maybe skip the last coord in the seq of the 20th puck bc it's probably very close to the nth puck position anyway...
     return puck_seq.tolist()
+
+
+def throw_away_all_pucks(robot: RobotCommunicator, coord_json, angles_json, clr="red"):
+    throw = coord_json["angle_table"]["discard-puck"]
+    robot.send_angles(coord_json["angle_table"]["prepare"], 50)
+    for i in range(21):
+        puck_seq_i = angles_json["angle_table"][f"stack-{clr}-{i}"]
+        robot.send_angles(puck_seq_i, 50)
+        robot._pump_on()
+        sleep(1)
+        robot._pump_off()
+        robot.send_angles(puck_seq_i[::-1], 50)
+        robot.send_coords(throw, 50)
+        robot.pump_release_and_off()
 
 
 def interp_from_first_and_last(
@@ -105,26 +121,18 @@ def interp_from_first_and_last(
     """
     fst = coord_json["angle_table"][f"stack-{clr}-0"]
     lst = coord_json["angle_table"][f"stack-{clr}-20"]
-    robot.send_coords(coord_json["angle_table"]["prepare"], 50)
+    lst_angles = angles_json["angle_table"][f"stack-{clr}-end"]
+    robot.send_angles(coord_json["angle_table"]["prepare"], 50)
+    robot.send_coords(fst, 50)
     for i in range(21):
-        input(f"please put in puck no {20-i} thank you <3")
-        angles = []
-        puck_seq_i = get_puck_seq(20 - i, fst, lst)
-        for coord in puck_seq_i:
-            robot.send_coords(coord, 50)
-            angles.append(robot.get_current_angles())
-        robot._pump_on()
-        sleep(1)
-        robot._pump_off()
-        robot.send_angles(angles[::-1], 50)
-        robot.send_angles(angles, 50)
-        robot.pump_release_and_off()
-        robot.send_angles(angles[::-1], 50)
-        set_value(angles_json, ("angle_table", f"stack-{clr}-{i}"), angles)
+        puck_seq_i = get_puck_seq(i, fst, lst, lst_angles)
+        robot.send_coords(puck_seq_i[-1], 50) # go one step down
+        puck_seq_i[-1] = (
+            robot.get_current_angles()
+        )  # swap last coord to angles & we're done
+        set_value(angles_json, ("angle_table", f"stack-{clr}-{20-i}"), puck_seq_i)
         with open(ANGLES_JSON_PATH, "w") as f:
             json.dump(angles_json, f, indent=2)
-        # this way, if we decide to change delta between steps, we only need to recalc 0th and 20th + redo this semi-automatic function.
-
 
 def test_infinite_drop():
     """
@@ -149,12 +157,15 @@ def test_infinite_drop():
     # for(i in range(30)):
     pass
 
-
 def get_drop_table_sequence():
     steps = []
     steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
     for n in range(7):
+    # steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
+    #     steps.append((f"pickup {n}", "angles-json", ("angle_table", f"stack-red-{n}"), 100, None))
+    #     steps.append(("pump-on", "pump", None, None, None))
+    #     steps.append(("pump-off", "pump", None, None, None))
         steps.append((f"chess_{n}", "coords", ("chess_table", n), 100, 0))
         steps.append((f"drop_{n}", "forward-coords", ("drop_table", n), 100, 1))
         steps.append((f"chess_{n}_back", "reverse-coords", ("drop_table", n), 100, 1))
@@ -187,7 +198,7 @@ def set_value(coord_json, key, value):
         coord_json[t][k] = list(value) if isinstance(value, (list, tuple)) else value
 
 
-def run_step(robot: RobotCommunicator, coord_json, step):
+def run_step(robot: RobotCommunicator, coord_json, angles_json, step):
     name, kind, key, speed, mode = step
     if kind == "pump":
         if name == "pump-on":
@@ -198,7 +209,10 @@ def run_step(robot: RobotCommunicator, coord_json, step):
         elif name == "pump-off":
             robot._pump_off()
         return name, kind, key, True
-    value = get_value(coord_json, key)
+    if(kind == 'angles-json'):
+        value = get_value(angles_json, key)
+    else:
+        value = get_value(coord_json, key)
     if value is None:
         print(f"  (no saved position for {key[1]} — skipping move)")
         return name, kind, key, False
@@ -213,7 +227,7 @@ def run_step(robot: RobotCommunicator, coord_json, step):
         # print(f"going to {value}")
     elif kind == "reverse-coords":
         robot.send_coords(value, speed, direction="backwards")
-    elif kind == "angles":
+    elif "angles" in kind:
         robot.send_angles(value, speed)
     elif kind == "coords":
         robot.send_coords(value, speed, mode)
@@ -352,22 +366,6 @@ def edit_mode_loop(
                 amount = float(amount_str) if amount_str else nudge_mm
                 move_mode = 1 if linear_flag.lower() == "l" else 0
                 offset[axis_idx] += last_sign[axis_idx] * amount
-            elif spatial_nudge:
-                key_char, amount_str, linear_flag = spatial_nudge.groups()
-                # l=-Y r=+Y u=+X d=-X i=+Z o=-Z
-                spatial_axis = {
-                    "u": (0, 1),
-                    "d": (0, -1),
-                    "r": (1, 1),
-                    "l": (1, -1),
-                    "i": (2, 1),
-                    "o": (2, -1),
-                }
-                axis_idx, sign = spatial_axis[key_char]
-                last_sign[axis_idx] = sign
-                amount = float(amount_str) if amount_str else nudge_mm
-                move_mode = 1 if linear_flag == "l" else 0
-                offset[axis_idx] += sign * amount
             else:
                 idx = int(cmd) - 1
                 # 0:+X 1:-X 2:+Y 3:-Y 4:+Z 5:-Z
@@ -385,11 +383,11 @@ def edit_mode_loop(
             if move_mode == 1:
                 coords = robot.get_coords_interpolated(target, 50)
                 for coord in coords:
-                    robot.send_coords(coord, 50, 0)
+                    robot.send_coords(coord, 50)
                     current_angle = robot.get_current_angles()
 
             else:
-                robot.send_coords(target, 50, 0)
+                robot.send_coords(target, 50)
             mode_label = " [interpolated]" if move_mode == 1 else ""
             print(
                 f"Nudged{mode_label}. Offset: X={offset[0]:+.1f} Y={offset[1]:+.1f} Z={offset[2]:+.1f} | Target: {target[:3]}"
@@ -430,28 +428,26 @@ def main():
     with open(ANGLES_JSON_PATH, "r") as f:
         angles_json = json.load(f)
     seq = input(
-        "which sequence? \n1. drop positions\n2. puck pickup (red)\n3. puck pickup (ylw)\n4. interp pucks (red)\n5. interp pucks (ylw)\n"
+        "which sequence? \n1. drop positions\n2. puck pickup (red)\n3. puck pickup (ylw)\n4. interp pucks (red)\n5. interp pucks (ylw)\n6. throw away all red pucks (after setting values)\n"
     )
-    needs_pump = seq in ("2", "3")
-    if needs_pump:
-        ard_port = resolve_port("arduino")
-        pump = ArduinoCommunicator(ser=serial.Serial(ard_port, 115200))
-        robot = RobotCommunicator(com_port=args.port, pump=pump, coord_json=coord_json)
-    else:
-        pump = ArduinoPumpNoOp()
-        robot = RobotCommunicator(com_port=args.port, pump=pump, coord_json=coord_json)
+    ard_port = resolve_port("arduino")
+    pump = ArduinoCommunicator(ser=serial.Serial(ard_port, 115200))
+    robot = RobotCommunicator(com_port=args.port, pump=pump, coord_json=coord_json)
 
     if seq == "1":
         sequence = get_drop_table_sequence()
     elif seq == "2":
-        sequence = get_pickup_all_pucks_sequence("red")
+        sequence = get_pickup_fst_lst_pucks_sequence("red")
     elif seq == "3":
-        sequence = get_pickup_all_pucks_sequence("ylw")
+        sequence = get_pickup_fst_lst_pucks_sequence("ylw")
     elif seq == "4":
-        interp_from_first_and_last(robot, coord_json, angles_json,'red')
+        interp_from_first_and_last(robot, coord_json, angles_json, "red")
         return
     elif seq == "5":
-        interp_from_first_and_last(robot, coord_json, angles_json,'ylw')
+        interp_from_first_and_last(robot, coord_json, angles_json, "ylw")
+        return
+    elif seq == "6":
+        throw_away_all_pucks(robot, coord_json, angles_json, "red")
         return
     print(f"Running {len(sequence)} steps. Port={args.port}, JSON={json_path}")
 
@@ -464,7 +460,7 @@ def main():
             moved = False
             skip_move = False
         else:
-            *_, moved = run_step(robot, coord_json, step)
+            *_, moved = run_step(robot, coord_json, angles_json, step)
         if not args.no_edit and kind != "pump":
             result = edit_mode_loop(
                 robot,
