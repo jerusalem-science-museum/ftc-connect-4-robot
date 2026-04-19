@@ -430,7 +430,7 @@ def main():
     with open(ANGLES_JSON_PATH, "r") as f:
         angles_json = json.load(f)
     seq = input(
-        "which sequence? \n1. drop positions\n2. puck pickup (red)\n3. puck pickup (ylw)\n4. interp pucks (red)\n5. interp pucks (ylw)"
+        "which sequence? \n1. drop positions\n2. puck pickup (red)\n3. puck pickup (ylw)\n4. interp pucks (red)\n5. interp pucks (ylw)\n"
     )
     needs_pump = seq in ("2", "3")
     if needs_pump:
