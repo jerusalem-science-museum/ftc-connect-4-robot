@@ -430,7 +430,7 @@ def main():
     with open(ANGLES_JSON_PATH, "r") as f:
         angles_json = json.load(f)
     seq = input(
-        "which sequence? \n1. drop positions\n2. puck pickup (red)\n3. puck pickup (ylw)\n"
+        "which sequence? \n1. drop positions\n2. puck pickup (red)\n3. puck pickup (ylw)\n4. interp pucks (red)\n5. interp pucks (ylw)"
     )
     needs_pump = seq in ("2", "3")
     if needs_pump:
@@ -443,19 +443,15 @@ def main():
 
     if seq == "1":
         sequence = get_drop_table_sequence()
-    if seq == "2":
+    elif seq == "2":
         sequence = get_pickup_all_pucks_sequence("red")
-    if seq == "3":
+    elif seq == "3":
         sequence = get_pickup_all_pucks_sequence("ylw")
-    if "4" in seq:
-        if "red" in seq:
-            clr = 'red'
-        elif 'ylw' in seq:
-            clr = 'ylw'
-        else:
-            print('clr not defined')
-            return
-        interp_from_first_and_last(robot, coord_json, angles_json,clr)
+    elif seq == "4":
+        interp_from_first_and_last(robot, coord_json, angles_json,'red')
+        return
+    elif seq == "5":
+        interp_from_first_and_last(robot, coord_json, angles_json,'ylw')
         return
     print(f"Running {len(sequence)} steps. Port={args.port}, JSON={json_path}")
 
