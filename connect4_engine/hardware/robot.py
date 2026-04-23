@@ -62,8 +62,6 @@ class RobotCommunicator(IRobot):
         self.ARM_SPEED = 100
         self.ARM_SPEED_PRECISE = 50
         self.MOVE_TIMEOUT = 1
-        self.DISK_LEVEL_Y = self.coord_json["DISK_DELTA_FROM_HOVER_Y"]
-        self.DISK_LEVEL_R = self.coord_json["DISK_DELTA_FROM_HOVER_R"]
         self.killswitch = threading.Event()
         robo_config = get_config()["hardware"]["robot"]
         self.pause_between_moves = robo_config["pause_between_moves"]
@@ -218,7 +216,14 @@ class RobotCommunicator(IRobot):
     def _pump_on(self):
         print("pump on")
         self.pump.turn_on_pump()
-
+    
+    def pump_on_short_then_off(self):
+        print("pump on")
+        self.pump.turn_on_pump()
+        time.sleep(1)
+        print("pump off")
+        self.pump.turn_off_pump()
+    
     def _pump_off(self):
         print("pump off")
         self.pump.turn_off_pump()

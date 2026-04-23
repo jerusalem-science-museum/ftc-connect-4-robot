@@ -37,6 +37,9 @@ class ArduinoDummy(IArduino):
     def set_game_start_callback(self, callback: Callable[[], None]):
         self.game_start = callback
 
+    def set_interrupt_callback(self, callback):
+        pass
+
     def puck_dropped_in_col(self, column: int):
         """
         Simulate listening for player moves from the Arduino hardware.

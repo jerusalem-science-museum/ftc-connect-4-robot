@@ -35,13 +35,17 @@
 
 const int DEBOUNCE_MS = 50;
 const int ms_to_reset = 2000;  // no. of ms user needs to press button to reset the game.
+unsigned long lastResetSolenoids = 0;
+const int MAX_MS_TO_RESET_SOLENOIDS = 3000;
 unsigned long last_change_ms = 0;
 byte solenoid_state = 0;
 
 // Timing variables
 unsigned long pumpStartTime = 0;
+unsigned long pumpReleaseTime = 0;
 const unsigned long pumpTimeout = 30000UL;  // 30 seconds in ms
 bool pumpRunning = false;
+bool pumpReleasing = false;
 
 void setup_sensors() {
   pinMode(ST_PIN, OUTPUT);
@@ -56,13 +60,6 @@ void setup_sensors() {
   digitalWrite(SOLENOID_PIN, LOW);
 }
 
-void writeToSr(byte data) {
-  digitalWrite(ST_PIN, LOW);
-  SPI.transfer(data);          // Send output byte
-  digitalWrite(ST_PIN, HIGH);  // Latch output
-}
-
-
 void turnOnPump() {
   digitalWrite(PUMP_PIN, HIGH);
   digitalWrite(SOLENOID_PIN, LOW);
@@ -76,6 +73,7 @@ void shutOffPump() {
   digitalWrite(PUMP_PIN, LOW);
   digitalWrite(SOLENOID_PIN, LOW);
   pumpRunning = false;
+  pumpReleasing = false;
   Serial.println("LOG: PUMP OFF");
 }
 
@@ -84,7 +82,8 @@ void releasePump() {
   delay(100);
   digitalWrite(SOLENOID_PIN, HIGH);
   delay(100);
-  pumpRunning = false;
+  pumpReleaseTime = millis();
+  pumpReleasing = true;
   Serial.println("LOG: PUMP RELEASE");
 }
 
@@ -125,18 +124,30 @@ void led_strobe(int rounds = 1) {
 void handlePump() {
   if (pumpRunning && (millis() - pumpStartTime >= pumpTimeout)) {
     shutOffPump();
-
-    // //Transmit that the pump has been turned off
-    // byte msg = build_message_byte(PUMP_CMD, 0, 0);
-    // Serial.write(msg);
   }
 }
+
+void writeToSr(byte data) {
+  digitalWrite(ST_PIN, LOW);
+  SPI.transfer(data);          // Send output byte
+  digitalWrite(ST_PIN, HIGH);  // Latch output
+}
+
 void update165() {
   // Latch the inputs into the shift register
   digitalWrite(LA_PIN, LOW);
   delayMicroseconds(5);
   digitalWrite(LA_PIN, HIGH);
   delayMicroseconds(5);
+}
+
+void handleResetSolenoids() {
+  if (millis() - lastResetSolenoids > MAX_MS_TO_RESET_SOLENOIDS )
+  {
+    writeToSr(0);
+    Serial.println("LOG: incremental reset solenoids");
+    lastResetSolenoids = millis();
+  }
 }
 
 void handleDiscDetection() {
@@ -155,16 +166,6 @@ void handleDiscDetection() {
     Serial.println(msg);
   }
   last_data = data;
-}
-
-
-int bit_index(byte x) {
-  // int i = 0;
-  // while (x >>= 1) i++;
-  // return i;
-
-  //Like the code above, but apparently native, counts trailing zeros
-  return __builtin_ctz(x);
 }
 
 // register reset button after ms_to_reset milliseconds, so user gets response more immediatly than on release.
@@ -207,15 +208,14 @@ void reset_solenoids(String stackSizes) {
     delay(500 * pucksToRemove);
   }
   // fast sequence to make sure solenoids close (open and close each solenoid a bunch of times)
-  for (int i = 0; i < 7; ++i) {
-    for (int j = 0; j < 10; ++j) {
-      writeToSr(1 << i);
-      delay(50);
-      writeToSr(0);
-      delay(50);
-    }
-  }
-
+  // for (int i = 0; i < 7; ++i) {
+  //   for (int j = 0; j < 10; ++j) {
+  //     writeToSr(1 << i);
+  //     delay(50);
+  //     writeToSr(0);
+  //     delay(50);
+  //   }
+  // }
   writeToSr(0);
 }
 

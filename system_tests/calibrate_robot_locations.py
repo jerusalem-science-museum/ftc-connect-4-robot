@@ -134,28 +134,36 @@ def interp_from_first_and_last(
         with open(ANGLES_JSON_PATH, "w") as f:
             json.dump(angles_json, f, indent=2)
 
-def test_infinite_drop():
+def test_full_game(robot: RobotCommunicator, angles_json):
     """
-    the big one. just try to play infinite times, reset and everything. simulate the whole game.
+    the big one. just try to play a full game times, reset and everything. simulate the whole game.
     TODO: implement
     """
-    steps = []
-    steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
-    steps.append(("prepare", "angles", ("angle_table", "prepare"), 100, None))
-    steps.append(
-        ("stack-hover-red", "coords", ("angle_table", "stack-hover-red"), 50, 0)
-    )
-    steps.append(
-        (
-            "stack-hover-red-pickup",
-            "coords",
-            ("angle_table", "stack-hover-red-pickup"),
-            50,
-            1,
-        )
-    )
-    # for(i in range(30)):
-    pass
+    for i in range(21):
+        # place red
+        robot.send_angles(angles_json["angle_table"]["prepare"], 100)
+        robot.send_angles(angles_json['angle_table'][f'stack-red-{i}'], 50)
+        robot.pump_on_short_then_off()
+        robot.send_angles(angles_json['angle_table'][f'stack-red-{i}'], 50, direction='backwards')
+        robot.send_angles(angles_json["angle_table"]["prepare"], 100)
+        robot.send_angles(angles_json["angle_table"]["observe"], 100)
+        robot.send_angles(angles_json['chess_table'][f"{int(i / 3)}"], 100)
+        robot.send_angles(angles_json['drop_table'][f"{int(i / 3)}"], 50)
+        robot.pump_release_and_off()
+        robot.send_angles(angles_json['chess_table'][f"{int(i / 3)}"], 50)
+        # place ylw
+        robot.send_angles(angles_json["angle_table"]["prepare"], 100)
+        robot.send_angles(angles_json['angle_table'][f'stack-ylw-{i}'], 50)
+        robot.pump_on_short_then_off()
+        robot.send_angles(angles_json['angle_table'][f'stack-ylw-{i}'], 50, direction='backwards')
+        robot.send_angles(angles_json["angle_table"]["prepare"], 100)
+        robot.send_angles(angles_json["angle_table"]["observe"], 100)
+        # actually should be i*2+1 but same same.
+        robot.send_angles(angles_json['chess_table'][f"{int(i / 3)}"], 100) 
+        robot.send_angles(angles_json['drop_table'][f"{int(i / 3)}"], 50)
+        robot.pump_release_and_off()
+        robot.send_angles(angles_json['chess_table'][f"{int(i / 3)}"], 50)
+    robot.pump.reset()
 
 def get_drop_table_sequence():
     steps = []
@@ -167,8 +175,8 @@ def get_drop_table_sequence():
     #     steps.append(("pump-on", "pump", None, None, None))
     #     steps.append(("pump-off", "pump", None, None, None))
         steps.append((f"chess_{n}", "coords", ("chess_table", n), 100, 0))
-        steps.append((f"drop_{n}", "forward-coords", ("drop_table", n), 100, 1))
-        steps.append((f"chess_{n}_back", "reverse-coords", ("drop_table", n), 100, 1))
+        steps.append((f"drop_{n}", "coords", ("drop_table", n), 100, 0))
+        # steps.append((f"chess_{n}_back", "reverse-coords", ("drop_table", n), 100, 1))
     steps.append(("observe", "angles", ("angle_table", "observe"), 100, None))
     steps.append(
         ("handover-window", "coords", ("angle_table", "handover-window"), 100, 0)
@@ -352,8 +360,7 @@ def edit_mode_loop(
             cmd = spatial_map[cmd_lower]
         # Parse axis nudge: x/y/z[+-][mm] or [lrudio][mm]
         axis_match = re.match(r"^([xyz])([+-]?)(\d*\.?\d*)(l?)$", raw, re.IGNORECASE)
-        spatial_nudge = re.match(r"^([lrudio])(\d*\.?\d*)(l?)$", raw.lower())
-        if axis_match or spatial_nudge or cmd in "123456":
+        if axis_match or cmd in "123456":
             if not "coords" in kind:
                 print("Nudge only for coord steps. Use release/lock for angle steps.")
                 continue
@@ -428,7 +435,15 @@ def main():
     with open(ANGLES_JSON_PATH, "r") as f:
         angles_json = json.load(f)
     seq = input(
-        "which sequence? \n1. drop positions\n2. puck pickup (red)\n3. puck pickup (ylw)\n4. interp pucks (red)\n5. interp pucks (ylw)\n6. throw away all red pucks (after setting values)\n"
+        """which sequence?
+1. drop positions
+2. puck pickup (red)
+3. puck pickup (ylw)
+4. interp pucks (red)
+5. interp pucks (ylw)
+6. throw away all red pucks (after setting values)
+7. test full game (after calibrating everything)
+"""
     )
     ard_port = resolve_port("arduino")
     pump = ArduinoCommunicator(ser=serial.Serial(ard_port, 115200))
@@ -448,6 +463,9 @@ def main():
         return
     elif seq == "6":
         throw_away_all_pucks(robot, coord_json, angles_json, "red")
+        return
+    elif seq == "7":
+        test_full_game(robot, angles_json)
         return
     print(f"Running {len(sequence)} steps. Port={args.port}, JSON={json_path}")
 
