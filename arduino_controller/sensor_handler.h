@@ -37,6 +37,8 @@ const int DEBOUNCE_MS = 50;
 const int ms_to_reset = 2000;  // no. of ms user needs to press button to reset the game.
 unsigned long lastResetSolenoids = 0;
 const int MAX_MS_TO_RESET_SOLENOIDS = 3000;
+const int PUCK_DROPTIME_MS = 5;
+const int COOLDOWN_PUCK_MS = 100;
 unsigned long last_change_ms = 0;
 byte solenoid_state = 0;
 
@@ -141,7 +143,7 @@ void update165() {
   delayMicroseconds(5);
 }
 
-void handleResetSolenoids() {
+void periodicResetSolenoids() {
   if (millis() - lastResetSolenoids > MAX_MS_TO_RESET_SOLENOIDS )
   {
     writeToSr(0);
@@ -199,13 +201,18 @@ void reset_solenoids(String stackSizes) {
     customWait = true;
   for (int i = 0; i < 7; ++i) {
     char msg[40];
-    writeToSr(1 << i);
     int pucksToRemove = 6;
     if (customWait)
       pucksToRemove = stackSizes.substring(i, i + 1).toInt();  // take the current puck stack size and apply to multiplier
     sprintf(msg, "LOG turn off solenoid %d for %d pucks", i, pucksToRemove);
     Serial.println(msg);
-    delay(500 * pucksToRemove);
+    for(int puckno=0;puckno<pucksToRemove; ++puckno)
+    {
+      writeToSr(1 << i);
+      delay(PUCK_DROPTIME_MS);
+      writeToSr(0);
+      delay(COOLDOWN_PUCK_MS);
+    }
   }
   // fast sequence to make sure solenoids close (open and close each solenoid a bunch of times)
   // for (int i = 0; i < 7; ++i) {
