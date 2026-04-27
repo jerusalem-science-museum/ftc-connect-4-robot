@@ -142,27 +142,27 @@ def test_full_game(robot: RobotCommunicator, angles_json):
     for i in range(21):
         # place red
         robot.send_angles(angles_json["angle_table"]["prepare"], 100)
-        robot.send_angles(angles_json['angle_table'][f'stack-red-{i}'], 50)
+        robot.send_angles(angles_json['angle_table'][f'stack-red-{i}'], 100)
         robot.pump_on_short_then_off()
-        robot.send_angles(angles_json['angle_table'][f'stack-red-{i}'], 50, direction='backwards')
+        robot.send_angles(angles_json['angle_table'][f'stack-red-{i}'], 100, direction='backwards')
         robot.send_angles(angles_json["angle_table"]["prepare"], 100)
         robot.send_angles(angles_json["angle_table"]["observe"], 100)
         robot.send_angles(angles_json['chess_table'][f"{int(i / 3)}"], 100)
-        robot.send_angles(angles_json['drop_table'][f"{int(i / 3)}"], 50)
+        robot.send_angles(angles_json['drop_table'][f"{int(i / 3)}"], 100)
         robot.pump_release_and_off()
-        robot.send_angles(angles_json['chess_table'][f"{int(i / 3)}"], 50)
+        robot.send_angles(angles_json['chess_table'][f"{int(i / 3)}"], 100)
         # place ylw
         robot.send_angles(angles_json["angle_table"]["prepare"], 100)
-        robot.send_angles(angles_json['angle_table'][f'stack-ylw-{i}'], 50)
+        robot.send_angles(angles_json['angle_table'][f'stack-ylw-{i}'], 100)
         robot.pump_on_short_then_off()
-        robot.send_angles(angles_json['angle_table'][f'stack-ylw-{i}'], 50, direction='backwards')
+        robot.send_angles(angles_json['angle_table'][f'stack-ylw-{i}'], 100, direction='backwards')
         robot.send_angles(angles_json["angle_table"]["prepare"], 100)
         robot.send_angles(angles_json["angle_table"]["observe"], 100)
         # actually should be i*2+1 but same same.
         robot.send_angles(angles_json['chess_table'][f"{int(i / 3)}"], 100) 
-        robot.send_angles(angles_json['drop_table'][f"{int(i / 3)}"], 50)
+        robot.send_angles(angles_json['drop_table'][f"{int(i / 3)}"], 100)
         robot.pump_release_and_off()
-        robot.send_angles(angles_json['chess_table'][f"{int(i / 3)}"], 50)
+        robot.send_angles(angles_json['chess_table'][f"{int(i / 3)}"], 100)
     robot.pump.reset()
 
 def get_drop_table_sequence():
@@ -437,8 +437,8 @@ def main():
     seq = input(
         """which sequence?
 1. drop positions
-2. puck pickup (red)
-3. puck pickup (ylw)
+2. puck pickup first & last (red)
+3. puck pickup first & last (ylw)
 4. interp pucks (red)
 5. interp pucks (ylw)
 6. throw away all red pucks (after setting values)
