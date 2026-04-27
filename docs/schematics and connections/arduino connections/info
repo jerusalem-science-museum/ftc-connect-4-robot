@@ -1,26 +1,25 @@
 {
-  "uuid": "6824b6bb92b4c809fa228d8457080a17",
-  "path": "Offline/connect%204%20v2",
-  "name": "connect 4 v2",
+  "uuid": "67be9e3938319da4bb404960c2da1760",
+  "path": "Offline/connect%204%20v4",
+  "name": "connect 4 v4",
   "content": "",
-  "created_at": "2026-03-23 18:30:25",
-  "updated_at": "2026-03-23 18:33:17",
+  "created_at": "2026-04-14 11:01:48",
+  "updated_at": "2026-04-14 11:01:48",
   "stick": "",
   "documents": [
     {
-      "uuid": "c45fce99947e7e83e5e48d7c21cd5d65",
+      "uuid": "06e71e0d7795b71a6c35aada7cc0e75d",
       "title": "Sheet_1",
       "description": "",
       "docType": "1",
-      "master": "d8827acdb520a69e2514f8fbc503e83d",
+      "master": "",
       "thumb": "/images/thumb-default.png",
       "components": {
         "5a9ec2085ad6436d86701332d4451b76": 2,
         "fee3186e847b42ecb0244c6d4d6aaef8": 1,
         "ef7ea54d367cdb60f78d056756b992d9": 1,
         "56b239b0ed3d371e23923578aee91726": 1,
-        "9bc5d46e2bd4176ac7c3958f1aa86225": 1,
-        "506a2f49fd5af7690094a86e81a44ebe": 1
+        "9bc5d46e2bd4176ac7c3958f1aa86225": 2
       },
       "BOM": [
         [
@@ -31,15 +30,15 @@
           "CustomPara"
         ],
         [
-          "BUTTON",
-          1,
-          "CONN-TH_KF2510-2A",
-          "D3",
+          "FK2510",
+          2,
+          "CONN-TH_3P-P2.00_KF2510_3A",
+          "BUTTON,PUMP_DRIVER",
           {
-            "Manufacturer Part": "KF2510-2A",
-            "Manufacturer": "BOOMELE",
-            "Supplier": "LCSC",
-            "Supplier Part": "C27543"
+            "Manufacturer Part": "",
+            "Manufacturer": "",
+            "Supplier": "",
+            "Supplier Part": ""
           }
         ],
         [
@@ -89,30 +88,18 @@
             "Supplier": "LCSC",
             "Supplier Part": "C61410"
           }
-        ],
-        [
-          "FK2510",
-          1,
-          "CONN-TH_3P-P2.00_KF2510_3A",
-          "PUMP_DRIVER",
-          {
-            "Manufacturer Part": "",
-            "Manufacturer": "",
-            "Supplier": "",
-            "Supplier Part": ""
-          }
         ]
       ],
-      "updateTime": 1774283597,
-      "createTime": 1774283425,
+      "updateTime": 1776153708,
+      "createTime": 1776153708,
       "histories": [],
-      "created_at": "2026-03-23 18:30:25",
-      "updated_at": "2026-03-23 18:33:17"
+      "created_at": "2026-04-14 11:01:48",
+      "updated_at": "2026-04-14 11:01:48"
     }
   ],
   "sort": [],
-  "title": "connect 4 v2",
-  "foldername": "connect 4 v2",
-  "schfilename": "connect 4 v2.json",
-  "schfilemtime": 1774283597616
+  "title": "connect 4 v4",
+  "foldername": "connect 4 v4",
+  "schfilename": "connect 4 v4.json",
+  "schfilemtime": 1776153708542
 }

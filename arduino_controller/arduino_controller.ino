@@ -14,13 +14,14 @@ void setup() {
   close_solenoids();
   delay(1000);
   Serial.println("LOG set up");
-  Serial.println("START");
+  // Serial.println("START");
 }
 
 
 void loop() {
   handleDiscDetection();
   handleButtonPress();
+  periodicResetSolenoids();                  
   if (Serial.available()) {
     handle_cmd(Serial.readStringUntil('\n'));
   }
